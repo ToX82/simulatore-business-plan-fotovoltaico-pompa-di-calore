@@ -789,6 +789,11 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
           <div class="iu"><input type="number" id="batCap" value="21" min="0" step="0.5" oninput="calc()"><span class="unit">kWh</span></div>
           <div class="fhint">Capacità a inizio vita; il degrado annuo è gestito sotto.</div>
         </div>
+        <div class="f">
+          <div class="fl"><label>Rendimento round-trip batteria</label></div>
+          <div class="iu"><input type="number" id="batRT" value="90" min="70" max="100" step="0.1" oninput="calc()"><span class="unit">%</span></div>
+          <div class="fhint">Energia restituita in scarica / energia assorbita in carica. Tipico LFP: 88–92 %; include perdite inverter ibrido lato batteria.</div>
+        </div>
         <div class="sep"></div>
         <div class="sl">Distribuzione energia prodotta</div>
         <div class="trow">
@@ -878,6 +883,12 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
           <div class="fl"><label>Inflazione valore RID</label></div>
           <div class="iu"><input type="number" id="inflRID" value="0.5" step="0.1" min="0" max="5" oninput="calc()"><span class="unit">%/anno</span></div>
           <div class="fhint">Il prezzo all'ingrosso (PUN) cresce meno del costo al consumo: 0,5–1 %/anno.</div>
+        </div>
+        <div class="sep"></div>
+        <div class="f">
+          <div class="fl"><label>Tasso di sconto (NPV)</label></div>
+          <div class="iu"><input type="number" id="discRate" value="3.0" step="0.1" min="0" max="10" oninput="calc()"><span class="unit">%/anno</span></div>
+          <div class="fhint">Tasso reale per attualizzare i flussi futuri. Un €1 nel 2050 vale meno di €1 oggi: il NPV mostra il valore presente del cumulato. Tipico: 2–4 %.</div>
         </div>
       </div>
     </div>
@@ -1019,6 +1030,13 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
             <div class="iu"><input type="number" id="costoMaint" value="2500" oninput="calc()"><span class="unit">€</span></div>
           </div>
         </div>
+        <div class="sep"></div>
+        <div class="sl">Manutenzione ricorrente</div>
+        <div class="f">
+          <div class="fl"><label>Costo annuo</label></div>
+          <div class="iu"><input type="number" id="maintYearly" value="350" min="0" oninput="calc()"><span class="unit">€/anno</span></div>
+          <div class="fhint">Pulizia pannelli (~€150), revisione PdC (~€120), assicurazione impianto (~€80). Cresce con l'inflazione EE.</div>
+        </div>
       </div>
     </div>
 
@@ -1045,7 +1063,7 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
       <div class="kcard" id="kcardNet">
         <div class="klabel">Vantaggio netto · 25 anni</div>
         <div class="kval" id="kNet">—</div>
-        <div class="ksub">Cumulato dei vantaggi al netto dell'investimento</div>
+        <div class="ksub">Nominale · NPV: <strong id="kNetNPV">—</strong></div>
       </div>
       <div class="kcard">
         <div class="klabel">Rendimento medio</div>
@@ -1096,7 +1114,7 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
               <th>C.Termico</th>
               <th>Incentivo<br>Revamping</th>
               <th>Costo EE<br>residuo</th>
-              <th>Manut.<br>straord.</th>
+              <th>Manutenz.<br>(annua + str.)</th>
               <th>TOT.<br>VANTAGGI</th>
               <th>Cumul.<br>senza fin.</th>
               <th>Rata<br>fin.</th>
@@ -1294,6 +1312,7 @@ function readParams(){
     prodFV: num('prodFV'),
     degradFV: num('degradFV') / 100,
     batCap: num('batCap'),
+    batRT: num('batRT') / 100,
     pctInstant: (+document.getElementById('rngInstant').value) / 100,
     pctBat: (+document.getElementById('rngBat').value) / 100,
     pctRID: (+document.getElementById('rngRID').value) / 100,
@@ -1302,6 +1321,7 @@ function readParams(){
     batCap25: num('batCap25') / 100,
     prezzoEE: num('prezzoEE'), prezzoRID: num('prezzoRID'),
     inflEE: num('inflEE') / 100, inflRID: num('inflRID') / 100,
+    discRate: num('discRate') / 100,
     fabbEE: num('fabbEE'),
     rispGPL: num('rispGPL'),
     totDetr: num('totDetr'), durDetr: num('durDetr'),
@@ -1312,6 +1332,7 @@ function readParams(){
     capFin: num('capFin'), durFin: num('durFin'), tassoFin: num('tassoFin') / 100, rataFin: num('rataFin'),
     useMaint: state.useMaint,
     annoMaint: num('annoMaint'), costoMaint: num('costoMaint'),
+    maintYearly: num('maintYearly'),
   };
 }
 
@@ -1333,6 +1354,7 @@ function calcPlan(p){
   const rows = [];
   let cumSimple = -inv;
   let cumFin = -inv + (p.useFin ? p.capFin : 0);
+  let cumNPV = -inv;
   let paybackSimple = null, paybackFin = null;
 
   for(let n = 1; n <= 25; n++){
@@ -1348,8 +1370,8 @@ function calcPlan(p){
     const kwh_inst = fvProd * p.pctInstant;
     const val_inst = kwh_inst * prezzo;
 
-    // Autoconsumo batteria
-    const kwh_bat = fvProd * p.pctBat * bf;
+    // Autoconsumo batteria — applica rendimento round-trip (perdite carica/scarica)
+    const kwh_bat = fvProd * p.pctBat * bf * p.batRT;
     const val_bat = kwh_bat * prezzo;
 
     // RID
@@ -1374,8 +1396,10 @@ function calcPlan(p){
     if(n <= p.anniRev) val_rev = p.kwhRev * p.tarRev;
     else if(n === p.anniRev + 1) val_rev = p.kwhRev * p.tarRev * 0.5;
 
-    // Manutenzione
-    const val_maint = (p.useMaint && n === p.annoMaint) ? -p.costoMaint : 0;
+    // Manutenzione: straordinaria (evento singolo) + ricorrente annua (cresce con inflazione)
+    const val_maintExt = (p.useMaint && n === p.annoMaint) ? -p.costoMaint : 0;
+    const val_maintYr  = -(p.maintYearly * infl);
+    const val_maint = val_maintExt + val_maintYr;
 
     // Totale vantaggi (include revamping solo se flag attivo)
     const tot = val_inst + val_bat + val_rid + val_gpl + val_ee + val_detr + val_ct
@@ -1392,10 +1416,13 @@ function calcPlan(p){
     cumFin += flussoFin;
     if(paybackFin === null && prevFin < 0 && cumFin >= 0) paybackFin = n;
 
+    // NPV: scontiamo il flusso annuale al tasso reale (investimento iniziale già a t=0)
+    cumNPV += tot / Math.pow(1 + p.discRate, n);
+
     rows.push({ n, fvProd, val_inst, val_bat, val_rid, val_gpl, val_detr, val_ct,
                 val_rev, val_ee, val_maint, tot, cumSimple, rata, flussoFin, cumFin });
   }
-  return { rows, inv, cumSimple, cumFin, paybackSimple, paybackFin };
+  return { rows, inv, cumSimple, cumFin, cumNPV, paybackSimple, paybackFin };
 }
 
 // ─────────────────────────────────────────────
@@ -1445,7 +1472,7 @@ function calc(){
   document.getElementById('kwhBat').textContent     = kBat.toLocaleString('it-IT') + ' kWh';
   document.getElementById('kwhRID').textContent     = kRID.toLocaleString('it-IT') + ' kWh';
 
-  const { rows, cumSimple, cumFin, paybackSimple, paybackFin } = calcPlan(p);
+  const { rows, cumSimple, cumFin, cumNPV, paybackSimple, paybackFin } = calcPlan(p);
   chartData = rows;
 
   // KPIs — il suffisso usa <span class="kval-suffix"> per stile più discreto
@@ -1458,6 +1485,9 @@ function calc(){
   const netV = Math.round(cumSimple);
   const netEl = document.getElementById('kNet');
   netEl.innerHTML = (netV >= 0 ? '+€ ' : '−€ ') + Math.abs(netV).toLocaleString('it-IT');
+  const npvV = Math.round(cumNPV);
+  document.getElementById('kNetNPV').textContent =
+    (npvV >= 0 ? '+€ ' : '−€ ') + Math.abs(npvV).toLocaleString('it-IT');
   const netCard = document.getElementById('kcardNet');
   netCard.classList.toggle('is-pos', netV >= 0);
   netCard.classList.toggle('is-neg', netV < 0);
@@ -1673,11 +1703,11 @@ function saveSimulation(){
   if(!name){ showToast('Serve un nome per salvare la simulazione'); return; }
   const sims = getAll();
   const inputs = {};
-  ['costFV','costBat','costHP','costElec','prodFV','degradFV','batCap',
+  ['costFV','costBat','costHP','costElec','prodFV','degradFV','batCap','batRT',
    'rngInstant','rngBat','rngRID',
-   'batCap10','batCap20','batCap25','prezzoEE','prezzoRID','inflEE','inflRID','fabbEE','rispGPL',
+   'batCap10','batCap20','batCap25','prezzoEE','prezzoRID','inflEE','inflRID','discRate','fabbEE','rispGPL',
    'totDetr','durDetr','contoTermico','kwhRev','tarRev','anniRev',
-   'capFin','durFin','tassoFin','rataFin','annoMaint','costoMaint'
+   'capFin','durFin','tassoFin','rataFin','annoMaint','costoMaint','maintYearly'
   ].forEach(id => { const el = document.getElementById(id); if(el) inputs[id] = el.value; });
   inputs._state = {...state};
   sims[name] = inputs;

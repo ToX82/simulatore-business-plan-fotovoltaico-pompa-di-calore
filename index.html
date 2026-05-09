@@ -977,14 +977,14 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
       </div>
       <div class="pb">
         <div class="trow">
-          <span class="tlabel">Utilizzo finanziamento</span>
-          <div class="tswitch on" id="sw-fin" onclick="toggleSwitch('sw-fin','useFin')"><div class="tknob"></div></div>
+          <span class="tlabel">Finanziamento 100%</span>
+          <div class="tswitch on" id="sw-capAuto" onclick="toggleSwitch('sw-capAuto','capAuto')"><div class="tknob"></div></div>
         </div>
-        <div class="sep"></div>
         <div class="f2">
           <div class="f">
             <div class="fl"><label>Capitale finanziato</label></div>
             <div class="iu"><input type="number" id="capFin" value="34191" oninput="calc()"><span class="unit">€</span></div>
+            <div class="fhint" id="capFinHint">Finanziamento completo.</div>
           </div>
           <div class="f">
             <div class="fl"><label>Durata finanziamento</label></div>
@@ -998,8 +998,8 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
           </div>
           <div class="f">
             <div class="fl"><label>Rata annua (PMT)</label></div>
-            <div class="iu"><input type="number" id="rataFin" value="6412" oninput="calc()"><span class="unit">€/a</span></div>
-            <div class="fhint">Puoi inserire la rata contrattuale effettiva al posto del calcolo automatico.</div>
+            <div class="iu"><input type="number" id="rataFin" value="6412" readonly tabindex="-1"><span class="unit">€/a</span></div>
+            <div class="fhint">Calcolata automaticamente da capitale, durata e tasso.</div>
           </div>
         </div>
       </div>
@@ -1224,7 +1224,7 @@ function simulateDistribution(prodFV, consEE, batCap){
 // ─────────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────────
-const state = { inclRev: false, useFin: true, useMaint: true, autoDist: true };
+const state = { inclRev: false, useMaint: true, autoDist: true, capAuto: true };
 let chartMode = 'cumul';
 let chartData = [];
 let lastPct = { Instant: 19.3, Bat: 25.3, RID: 55.4 };
@@ -1329,12 +1329,20 @@ function readParams(){
     contoTermico: num('contoTermico'),
     kwhRev: num('kwhRev'), tarRev: num('tarRev'), anniRev: num('anniRev'),
     inclRev: state.inclRev,
-    useFin: state.useFin,
-    capFin: num('capFin'), durFin: num('durFin'), tassoFin: num('tassoFin') / 100, rataFin: num('rataFin'),
+    capFin: num('capFin'), durFin: num('durFin'), tassoFin: num('tassoFin') / 100, rataFin: pmt(num('capFin'), num('tassoFin') / 100, num('durFin')),
     useMaint: state.useMaint,
     annoMaint: num('annoMaint'), costoMaint: num('costoMaint'),
     maintYearly: num('maintYearly'),
   };
+}
+
+// ─────────────────────────────────────────────
+// PMT — rata costante di un finanziamento a rate annue posticipate
+// ─────────────────────────────────────────────
+function pmt(capitale, tassoAnnuo, anni){
+  if(!(capitale > 0) || !(anni > 0)) return 0;
+  if(Math.abs(tassoAnnuo) < 1e-9) return capitale / anni;
+  return capitale * tassoAnnuo / (1 - Math.pow(1 + tassoAnnuo, -anni));
 }
 
 // ─────────────────────────────────────────────
@@ -1354,7 +1362,7 @@ function calcPlan(p){
   const inv = p.costFV + p.costBat + p.costHP + p.costElec;
   const rows = [];
   let cumSimple = -inv;
-  let cumFin = -inv + (p.useFin ? p.capFin : 0);
+  let cumFin = -inv + p.capFin;
   let cumNPV = -inv;
   let paybackSimple = null, paybackFin = null;
 
@@ -1411,7 +1419,7 @@ function calcPlan(p){
     cumSimple += tot;
     if(paybackSimple === null && prevSimple < 0 && cumSimple >= 0) paybackSimple = n;
 
-    const rata = p.useFin && n <= p.durFin ? p.rataFin : 0;
+    const rata = n <= p.durFin ? p.rataFin : 0;
     const flussoFin = tot - rata;
     const prevFin = cumFin;
     cumFin += flussoFin;
@@ -1453,11 +1461,22 @@ function calc(){
     const batCap = num('batCap');
     applyAutoDistribution(prod, cons, batCap);
   }
+  // Sincronizza capitale finanziato col totale investimento se in modalità auto
+  const invPre = num('costFV') + num('costBat') + num('costHP') + num('costElec');
+  const capFinEl = document.getElementById('capFin');
+  capFinEl.readOnly = state.capAuto;
+  capFinEl.tabIndex = state.capAuto ? -1 : 0;
+  document.getElementById('capFinHint').style.display = state.capAuto ? '' : 'none';
+  if(state.capAuto) capFinEl.value = Math.round(invPre);
+
   const p = readParams();
   const inv = p.costFV + p.costBat + p.costHP + p.costElec;
 
   // Total investment display
   document.getElementById('totInv').textContent = '€ ' + Math.round(inv).toLocaleString('it-IT');
+
+  // Aggiorna rata finanziamento calcolata (PMT)
+  document.getElementById('rataFin').value = Math.round(p.rataFin);
 
   // Aggiorna display % e kWh per gli slider
   const pInst = +document.getElementById('rngInstant').value;
@@ -1481,8 +1500,7 @@ function calc(){
   const pbEl = document.getElementById('kPayback');
   pbEl.innerHTML = paybackSimple ? `${paybackSimple} ${sfx('anni')}` : `&gt;&nbsp;25 ${sfx('anni')}`;
   const pbFinEl = document.getElementById('kPaybackFin');
-  if(!p.useFin) pbFinEl.innerHTML = '—';
-  else pbFinEl.innerHTML = paybackFin ? `${paybackFin} ${sfx('anni')}` : `&gt;&nbsp;25 ${sfx('anni')}`;
+  pbFinEl.innerHTML = paybackFin ? `${paybackFin} ${sfx('anni')}` : `&gt;&nbsp;25 ${sfx('anni')}`;
   const netV = Math.round(cumSimple);
   const netEl = document.getElementById('kNet');
   netEl.innerHTML = (netV >= 0 ? '+€ ' : '−€ ') + Math.abs(netV).toLocaleString('it-IT');
@@ -1708,7 +1726,7 @@ function saveSimulation(){
    'rngInstant','rngBat','rngRID',
    'batCap10','batCap20','batCap25','prezzoEE','prezzoRID','inflEE','inflRID','discRate','fabbEE','rispGPL',
    'totDetr','durDetr','contoTermico','kwhRev','tarRev','anniRev',
-   'capFin','durFin','tassoFin','rataFin','annoMaint','costoMaint','maintYearly'
+   'capFin','durFin','tassoFin','annoMaint','costoMaint','maintYearly'
   ].forEach(id => { const el = document.getElementById(id); if(el) inputs[id] = el.value; });
   inputs._state = {...state};
   sims[name] = inputs;
@@ -1734,7 +1752,7 @@ function applySimulation(data){
   });
   if(data._state){
     Object.assign(state, data._state);
-    const swMap = {'sw-rev':'inclRev','sw-fin':'useFin','sw-man':'useMaint','sw-auto':'autoDist'};
+    const swMap = {'sw-rev':'inclRev','sw-man':'useMaint','sw-auto':'autoDist','sw-capAuto':'capAuto'};
     Object.entries(swMap).forEach(([id, key]) => {
       const sw = document.getElementById(id);
       if(sw) sw.classList.toggle('on', state[key]);

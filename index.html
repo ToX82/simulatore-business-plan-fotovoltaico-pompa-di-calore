@@ -1,0 +1,1966 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulatore Fotovoltaico + Accumulo — Business Plan 25 anni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ─── Design tokens ───────────────────────────────────────── */
+:root{
+  --bg:#f7f6f2;
+  --surface:#ffffff;
+  --surface-alt:#f3f1ec;
+  --line:#e7e4dd;
+  --line-strong:#d8d3c9;
+  --ink:#0a0908;
+  --ink-2:#3a3833;
+  --ink-3:#6b6862;
+  --mute:#a39f97;
+  --pos:#0d6e3a;
+  --pos-bg:#e9f2ec;
+  --neg:#a51616;
+  --neg-bg:#fbeaea;
+  --info:#1c2e6e;
+  --info-bg:#eef0f9;
+  --warm:#9a4a06;
+  --warm-bg:#fbf1e2;
+  --pay:#fdf5d3;
+  --maint:#fbeed4;
+
+  --font-sans:'Inter','Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-mono:'JetBrains Mono','IBM Plex Mono',ui-monospace,monospace;
+
+  --r-sm:6px; --r-md:10px; --r-lg:14px; --r-xl:20px;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+
+  --sh-1:0 1px 2px rgba(13,12,11,0.04);
+  --sh-2:0 2px 8px rgba(13,12,11,0.06);
+  --sh-3:0 8px 24px rgba(13,12,11,0.08);
+}
+
+/* ─── Reset & base ────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--font-sans);
+  background:var(--bg);
+  color:var(--ink);
+  line-height:1.55;
+  letter-spacing:-0.005em;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  font-feature-settings:'cv02','cv03','cv11','ss01';
+}
+button,input{font-family:inherit;color:inherit}
+
+/* ─── Header ──────────────────────────────────────────────── */
+.hdr{
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+  padding:18px 32px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  position:sticky;top:0;z-index:200;
+}
+.hdr-l{display:flex;align-items:center;gap:14px}
+.hdr-mark{
+  width:34px;height:34px;background:var(--ink);
+  border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-family:var(--font-mono);font-size:11.5px;
+  font-weight:600;letter-spacing:0.04em;
+}
+.hdr-title{font-size:15px;font-weight:600;letter-spacing:-0.02em;color:var(--ink)}
+.hdr-sub{font-size:12px;color:var(--ink-3);font-weight:400;margin-top:2px;letter-spacing:0}
+.hdr-r{font-size:11px;color:var(--ink-3);letter-spacing:0.06em;text-transform:uppercase;font-weight:500}
+
+/* ─── Save bar ────────────────────────────────────────────── */
+.savebar{
+  background:var(--surface);
+  border-bottom:1px solid var(--line);
+  padding:12px 32px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.savebar-label{
+  font-size:11px;font-weight:600;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:0.08em;
+  white-space:nowrap;
+}
+.si{
+  height:34px;padding:0 12px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  font-size:13px;color:var(--ink);
+  background:var(--surface);outline:none;
+  transition:all .15s var(--ease);
+}
+.si::placeholder{color:var(--mute)}
+.si:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(10,9,8,0.07)}
+.si-name{width:220px;max-width:100%}
+
+.btn{
+  height:34px;padding:0 14px;
+  border-radius:8px;font-size:13px;font-weight:500;letter-spacing:-0.005em;
+  cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  transition:all .15s var(--ease);
+}
+.btn:hover{background:var(--surface-alt);border-color:var(--line-strong)}
+.btn-primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-primary:hover{background:#27272a;border-color:#27272a}
+
+/* ─── Chips ───────────────────────────────────────────────── */
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1;min-width:0}
+.chip{
+  height:30px;padding:0 4px 0 12px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:16px;
+  font-size:12px;color:var(--ink-2);
+  cursor:pointer;display:inline-flex;align-items:center;gap:6px;max-width:220px;
+  transition:all .15s var(--ease);
+}
+.chip:hover{background:var(--surface-alt);border-color:var(--line-strong);color:var(--ink)}
+.chip-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.chip-del{
+  width:20px;height:20px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  color:var(--mute);font-size:14px;line-height:1;
+  transition:.15s var(--ease);flex-shrink:0;
+}
+.chip-del:hover{background:var(--neg-bg);color:var(--neg)}
+.chips-empty{font-size:12px;color:var(--mute);font-style:italic;letter-spacing:0}
+
+/* ─── Layout ──────────────────────────────────────────────── */
+.wrap{
+  max-width:1480px;margin:0 auto;
+  padding:32px;display:grid;
+  grid-template-columns:380px minmax(0,1fr);gap:28px;
+  align-items:start;
+}
+.left{display:flex;flex-direction:column;gap:14px;min-width:0}
+.right{display:flex;flex-direction:column;gap:24px;min-width:0}
+.tpanel{min-width:0}
+
+/* ─── Panel ───────────────────────────────────────────────── */
+.panel{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;
+  transition:border-color .15s var(--ease);
+}
+.panel:hover{border-color:var(--line-strong)}
+.ph{
+  padding:18px 22px;
+  display:flex;align-items:center;gap:14px;
+  cursor:pointer;user-select:none;
+  transition:background .15s var(--ease);
+}
+.ph:hover{background:var(--surface-alt)}
+.ph-num{
+  font-family:var(--font-mono);font-size:11px;color:var(--mute);
+  letter-spacing:0.05em;font-weight:500;
+  min-width:18px;flex-shrink:0;
+}
+.ph h2{
+  font-size:13.5px;font-weight:600;letter-spacing:-0.01em;
+  color:var(--ink);flex:1;
+}
+.ph-arr{
+  color:var(--mute);font-size:11px;
+  transition:transform .25s var(--ease);
+  flex-shrink:0;width:14px;text-align:center;
+}
+.panel.collapsed .ph-arr{transform:rotate(-90deg)}
+.panel.collapsed .pb{display:none}
+.pb{padding:6px 22px 22px}
+
+/* ─── Fields ──────────────────────────────────────────────── */
+.f{margin-bottom:14px}
+.f:last-child{margin-bottom:0}
+.fl{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:6px;gap:8px;
+}
+.fl label{
+  font-size:12px;font-weight:500;color:var(--ink-2);
+  display:flex;align-items:center;gap:6px;flex:1;
+}
+.fhint{font-size:11px;color:var(--ink-3);margin-top:6px;line-height:1.5}
+.fhint a,.ibox a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line-strong);transition:border-color .15s var(--ease)}
+.fhint a:hover,.ibox a:hover{border-color:var(--ink)}
+
+.iu{
+  display:flex;align-items:stretch;
+  border-radius:8px;border:1px solid var(--line);
+  background:var(--surface);
+  transition:all .15s var(--ease);
+}
+.iu:focus-within{border-color:var(--ink);box-shadow:0 0 0 3px rgba(10,9,8,0.07)}
+.iu input{
+  flex:1;height:36px;padding:0 12px;
+  border:none;outline:none;
+  font-family:var(--font-mono);font-size:13px;color:var(--ink);
+  background:transparent;
+  font-feature-settings:'tnum';
+  -moz-appearance:textfield;width:100%;
+}
+.iu input::-webkit-outer-spin-button,.iu input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.unit{
+  padding:0 12px;
+  display:flex;align-items:center;
+  font-size:11px;color:var(--ink-3);font-weight:500;letter-spacing:0;
+  background:var(--surface-alt);
+  border-left:1px solid var(--line);
+  white-space:nowrap;
+}
+
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sep{height:1px;background:var(--line);margin:18px 0}
+.sl{
+  font-size:10px;text-transform:uppercase;letter-spacing:0.1em;
+  font-weight:600;color:var(--mute);margin-bottom:12px;
+}
+
+/* ─── Info box ────────────────────────────────────────────── */
+.ibox{
+  padding:12px 14px;border-radius:10px;
+  font-size:12px;line-height:1.55;margin-bottom:14px;
+  background:var(--surface-alt);border:1px solid var(--line);color:var(--ink-2);
+}
+.ibox strong{font-weight:600;color:var(--ink)}
+.ibox-blue{background:var(--info-bg);border-color:#dde0ee;color:var(--info)}
+.ibox-amber{background:var(--warm-bg);border-color:#f3dfb6;color:var(--warm)}
+
+/* ─── Investment total ────────────────────────────────────── */
+.tot-row{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding-top:14px;
+}
+.tot-label{
+  font-size:11px;font-weight:600;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:0.08em;
+}
+.tot-value{
+  font-family:var(--font-mono);font-size:24px;font-weight:500;
+  color:var(--ink);letter-spacing:-0.02em;
+  font-feature-settings:'tnum';
+}
+
+/* ─── Toggle ──────────────────────────────────────────────── */
+.trow{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;gap:12px;
+}
+.tlabel{font-size:12px;font-weight:500;color:var(--ink-2);flex:1;line-height:1.4}
+.tswitch{
+  width:36px;height:20px;background:#dcd9d3;border-radius:10px;
+  cursor:pointer;position:relative;
+  transition:background .25s var(--ease);
+  flex-shrink:0;
+}
+.tswitch.on{background:var(--ink)}
+.tknob{
+  width:14px;height:14px;background:#fff;border-radius:50%;
+  position:absolute;top:3px;left:3px;
+  transition:left .25s var(--ease);
+  box-shadow:0 1px 3px rgba(0,0,0,.2);
+}
+.tswitch.on .tknob{left:19px}
+
+/* ─── Sliders ─────────────────────────────────────────────── */
+.sliders{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.srow{
+  display:flex;flex-direction:column;gap:10px;
+  padding:14px;background:var(--surface-alt);
+  border-radius:10px;border:1px solid transparent;
+  transition:all .25s var(--ease);
+}
+.sliders.auto .srow{background:#fbfaf5;border-color:#e9e3cf}
+.srow-head{display:flex;align-items:center;gap:8px}
+.sdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.slabel{font-size:12px;font-weight:500;color:var(--ink-2);flex:1}
+.spct{
+  font-family:var(--font-mono);font-size:14px;font-weight:600;
+  color:var(--ink);letter-spacing:-0.01em;
+  font-feature-settings:'tnum';
+}
+.srow-foot{
+  display:flex;justify-content:flex-end;
+  font-size:11px;color:var(--ink-3);
+  font-family:var(--font-mono);font-feature-settings:'tnum';letter-spacing:0;
+}
+
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:4px;
+  background:#e5e2dc;border-radius:2px;outline:none;cursor:pointer;
+  transition:opacity .2s var(--ease);
+}
+input[type=range]:disabled{opacity:.65;cursor:not-allowed}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:18px;height:18px;background:var(--ink);
+  border-radius:50%;cursor:pointer;
+  border:3px solid var(--surface);
+  box-shadow:0 1px 4px rgba(0,0,0,.18);
+  transition:transform .15s var(--ease);
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.12)}
+input[type=range]:disabled::-webkit-slider-thumb{cursor:not-allowed}
+input[type=range]::-moz-range-thumb{
+  width:18px;height:18px;background:var(--ink);
+  border-radius:50%;cursor:pointer;
+  border:3px solid var(--surface);
+  box-shadow:0 1px 4px rgba(0,0,0,.18);
+}
+
+/* ─── KPI cards ───────────────────────────────────────────── */
+.kpis{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:1px;
+  background:var(--line);
+  border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;
+}
+.kcard{
+  background:var(--surface);
+  padding:24px 24px 22px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  min-height:140px;
+  position:relative;
+}
+.klabel{
+  font-size:10px;text-transform:uppercase;letter-spacing:0.1em;
+  font-weight:600;color:var(--ink-3);
+  margin-bottom:14px;
+}
+.kval{
+  font-family:var(--font-sans);
+  font-size:42px;font-weight:300;
+  color:var(--ink);letter-spacing:-0.04em;line-height:1;
+  font-feature-settings:'tnum';
+}
+.kval-suffix{font-size:18px;font-weight:400;color:var(--ink-3);margin-left:3px;letter-spacing:-0.01em}
+.kcard.is-pos .kval{color:var(--pos)}
+.kcard.is-neg .kval{color:var(--neg)}
+.ksub{font-size:11px;color:var(--ink-3);margin-top:10px;letter-spacing:0;line-height:1.4}
+
+/* ─── Chart ───────────────────────────────────────────────── */
+.chart-panel{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:24px 28px 18px;
+}
+.chart-hdr{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:6px}
+.chart-hdr h3{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-0.01em}
+.ctabs{
+  display:flex;gap:2px;background:var(--surface-alt);
+  border-radius:8px;padding:2px;
+}
+.ctab{
+  padding:6px 14px;border-radius:6px;
+  font-size:12px;font-weight:500;color:var(--ink-3);
+  cursor:pointer;border:none;background:transparent;
+  font-family:var(--font-sans);
+  transition:.15s var(--ease);
+}
+.ctab:hover{color:var(--ink)}
+.ctab.active{background:var(--surface);color:var(--ink);box-shadow:var(--sh-1)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin:10px 0 12px}
+.li{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--ink-3);letter-spacing:0}
+.ld{width:18px;height:2px;border-radius:1px}
+canvas{display:block;width:100%!important}
+
+/* ─── Table ───────────────────────────────────────────────── */
+.tpanel{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:14px;overflow:hidden;
+}
+.thdr{
+  padding:18px 24px 16px;
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.thdr h3{font-size:14px;font-weight:600;color:var(--ink);letter-spacing:-0.01em}
+.thdr-meta{font-size:11px;color:var(--ink-3);display:flex;align-items:center;gap:14px;letter-spacing:0}
+.thdr-meta .pill{display:inline-flex;align-items:center;gap:6px}
+.thdr-meta .pill-dot{width:8px;height:8px;border-radius:2px}
+.tscroll{overflow-x:auto;max-width:100%}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+thead th{
+  background:var(--surface);
+  padding:14px 12px;text-align:right;
+  font-weight:500;font-size:10px;letter-spacing:0.06em;
+  color:var(--ink-3);white-space:nowrap;
+  border-bottom:1px solid var(--line);
+  text-transform:uppercase;
+  position:sticky;top:0;
+}
+thead th:first-child{text-align:left;min-width:48px;color:var(--mute);padding-left:24px}
+tbody tr{transition:background .1s var(--ease)}
+tbody tr:hover{background:var(--surface-alt)}
+tbody tr.tr-payback{background:var(--pay)!important}
+tbody tr.tr-maint{background:var(--maint)!important}
+td{
+  padding:11px 12px;text-align:right;
+  font-family:var(--font-mono);font-size:12px;
+  border-bottom:1px solid var(--line);
+  white-space:nowrap;
+  font-feature-settings:'tnum';color:var(--ink-2);
+}
+td:first-child{
+  text-align:left;font-weight:500;font-size:12px;
+  font-family:var(--font-sans);color:var(--ink-3);padding-left:24px;
+}
+td.pos{color:var(--pos)}
+td.neg{color:var(--neg)}
+td.z{color:var(--mute)}
+.pb-badge{
+  display:inline-flex;align-items:center;
+  background:var(--ink);color:#fff;
+  font-size:9px;font-weight:600;
+  padding:2px 7px;border-radius:10px;
+  margin-left:8px;letter-spacing:0.06em;
+  font-family:var(--font-sans);text-transform:uppercase;
+}
+tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(--line);color:var(--ink)}
+
+/* ─── Toast ───────────────────────────────────────────────── */
+.toast{
+  position:fixed;bottom:28px;right:28px;
+  background:var(--ink);color:#fff;
+  border:1px solid var(--ink);
+  padding:12px 18px;
+  border-radius:10px;font-size:13px;font-weight:500;letter-spacing:-0.005em;
+  box-shadow:var(--sh-3);
+  z-index:9999;
+  transform:translateY(8px);opacity:0;
+  transition:.25s var(--ease);
+  pointer-events:none;
+}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* ─── Header menu button (mobile only) ────────────────────── */
+.menu-btn{
+  display:none;
+  width:40px;height:40px;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);cursor:pointer;
+  align-items:center;justify-content:center;
+  transition:.15s var(--ease);
+  -webkit-tap-highlight-color:transparent;
+}
+.menu-btn:hover,.menu-btn:active{background:var(--surface-alt);border-color:var(--line-strong)}
+.menu-btn svg{width:18px;height:18px}
+
+/* ─── Bottom navigation (mobile only) ─────────────────────── */
+.mtabs{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(255,255,255,0.96);
+  backdrop-filter:saturate(180%) blur(14px);
+  -webkit-backdrop-filter:saturate(180%) blur(14px);
+  border-top:1px solid var(--line);
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  z-index:150;
+  box-shadow:0 -2px 12px rgba(13,12,11,0.05);
+}
+.mtab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:8px 4px;min-height:52px;
+  border-radius:10px;border:none;background:transparent;
+  color:var(--ink-3);cursor:pointer;
+  font-family:var(--font-sans);
+  transition:background .15s var(--ease),color .15s var(--ease);
+  -webkit-tap-highlight-color:transparent;
+}
+.mtab:active{background:var(--surface-alt)}
+.mtab.active{color:var(--ink)}
+.mtab.active .mtab-dot{opacity:1;transform:scaleX(1)}
+.mtab svg{width:20px;height:20px;stroke-width:2}
+.mtab-label{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase}
+.mtab-dot{
+  position:absolute;top:2px;
+  width:18px;height:3px;border-radius:2px;
+  background:var(--ink);
+  opacity:0;transform:scaleX(0);
+  transition:.2s var(--ease);
+}
+
+/* ─── Bottom sheet ────────────────────────────────────────── */
+.sheet-backdrop{
+  position:fixed;inset:0;
+  background:rgba(13,12,11,0.42);
+  z-index:300;opacity:0;pointer-events:none;
+  transition:opacity .25s var(--ease);
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);
+}
+.sheet-backdrop.show{opacity:1;pointer-events:auto}
+.sheet{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);
+  border-radius:20px 20px 0 0;
+  z-index:310;
+  padding:6px 0 calc(20px + env(safe-area-inset-bottom));
+  transform:translateY(100%);
+  transition:transform .32s var(--ease);
+  max-height:85vh;
+  overflow-y:auto;
+  box-shadow:0 -10px 40px rgba(13,12,11,0.18);
+  -webkit-overflow-scrolling:touch;
+}
+.sheet.show{transform:translateY(0)}
+.sheet-handle{
+  width:40px;height:4px;
+  background:var(--line-strong);
+  border-radius:2px;
+  margin:8px auto 14px;
+  cursor:grab;
+}
+.sheet-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 22px 14px;
+}
+.sheet-hdr h3{font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-0.01em}
+.sheet-close{
+  width:32px;height:32px;border-radius:50%;
+  border:none;background:var(--surface-alt);
+  color:var(--ink-2);cursor:pointer;font-size:18px;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:.15s var(--ease);
+}
+.sheet-close:active{background:var(--line)}
+.sheet-body{padding:0 22px;display:flex;flex-direction:column;gap:14px}
+.sheet-section-title{
+  font-size:10px;text-transform:uppercase;letter-spacing:0.1em;
+  font-weight:600;color:var(--mute);margin-top:6px;
+}
+.sheet-actions{display:flex;gap:8px;flex-wrap:wrap}
+.sheet-actions .btn{flex:1;justify-content:center;min-width:0}
+.sheet .chips{flex-direction:column;align-items:stretch;gap:8px}
+.sheet .chip{
+  height:auto;padding:12px 14px;border-radius:12px;
+  max-width:none;font-size:13px;
+}
+.sheet .chip-name{flex:1}
+.sheet .chip-del{width:28px;height:28px;font-size:18px}
+.sheet .chips-empty{padding:24px 0;text-align:center}
+
+/* ─── Tab panes (mobile visibility) ───────────────────────── */
+.tab-pane{display:block}
+.right > .tab-pane[data-tab="results"]{display:flex;flex-direction:column;gap:24px}
+
+/* ─── Tablet (768–1099px): single column, no tabs ─────────── */
+@media(max-width:1100px){
+  .wrap{grid-template-columns:1fr;padding:20px;gap:20px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ─── Mobile (<768px): tabs + bottom nav + sheet ──────────── */
+@media(max-width:768px){
+  html{font-size:15px}
+  .hdr{
+    padding:12px 16px;gap:12px;
+    padding-top:calc(12px + env(safe-area-inset-top));
+  }
+  .hdr-mark{width:32px;height:32px;border-radius:8px;font-size:11px}
+  .hdr-title{font-size:14px}
+  .hdr-sub{font-size:11px;margin-top:1px}
+  .hdr-r{display:none}
+  .menu-btn{display:inline-flex;flex-shrink:0}
+
+  .savebar{display:none}
+
+  .wrap{
+    padding:16px 14px calc(96px + env(safe-area-inset-bottom));
+    gap:14px;
+    grid-template-columns:1fr;
+  }
+  .left{gap:12px}
+  .right{gap:14px}
+
+  /* Tab visibility on mobile */
+  .tab-pane{display:none}
+  .tab-pane.is-active{display:flex;flex-direction:column;gap:14px;animation:fadeIn .25s var(--ease)}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  .mtabs{display:flex}
+
+  /* Compact panels */
+  .panel{border-radius:12px}
+  .ph{padding:14px 16px;min-height:56px;-webkit-tap-highlight-color:transparent}
+  .ph h2{font-size:14px}
+  .pb{padding:4px 16px 16px}
+
+  /* Inputs — 16px to prevent iOS zoom, 44px touch target */
+  .iu input{height:46px;font-size:16px;padding:0 14px}
+  .iu{border-radius:10px}
+  .unit{padding:0 14px;font-size:12px}
+  .si{height:44px;font-size:16px}
+  .si-name{width:100%;flex:1}
+  .btn{height:44px;font-size:14px;padding:0 16px;border-radius:10px}
+  .fl label{font-size:13px}
+  .fhint{font-size:12px;margin-top:8px}
+  .f{margin-bottom:16px}
+  .f2{gap:12px}
+
+  /* Sliders bigger thumb */
+  input[type=range]{height:6px;border-radius:3px}
+  input[type=range]::-webkit-slider-thumb{width:26px;height:26px;border-width:4px}
+  input[type=range]::-moz-range-thumb{width:26px;height:26px;border-width:4px}
+  .srow{padding:14px;border-radius:12px;gap:12px}
+  .spct{font-size:16px}
+  .srow-foot{font-size:12px}
+
+  /* Toggle bigger touch */
+  .tswitch{width:46px;height:28px;border-radius:14px}
+  .tknob{width:22px;height:22px;top:3px;left:3px}
+  .tswitch.on .tknob{left:21px}
+  .trow{padding:12px 0;min-height:44px}
+  .tlabel{font-size:13px}
+
+  /* Info boxes more breathable */
+  .ibox{padding:14px 16px;font-size:13px;border-radius:10px}
+
+  /* Total investment */
+  .tot-value{font-size:22px}
+
+  /* KPI grid */
+  .kpis{grid-template-columns:1fr 1fr;border-radius:12px}
+  .kcard{padding:18px 16px 16px;min-height:120px}
+  .klabel{font-size:9.5px;margin-bottom:10px}
+  .kval{font-size:30px}
+  .kval-suffix{font-size:14px}
+  .ksub{font-size:10.5px;margin-top:8px}
+
+  /* Chart */
+  .chart-panel{padding:18px 16px 14px;border-radius:12px}
+  .chart-hdr h3{font-size:13px}
+  .ctab{padding:7px 12px;font-size:12px;min-height:34px}
+  .legend{gap:12px;margin:8px 0 10px}
+  .li{font-size:10.5px}
+
+  /* Table — sticky first column for horizontal scroll */
+  .tpanel{border-radius:12px}
+  .thdr{padding:16px 16px 12px}
+  .thdr h3{font-size:13px}
+  .thdr-meta{font-size:10px;gap:10px}
+  .tscroll{-webkit-overflow-scrolling:touch}
+  table{font-size:11px}
+  thead th{padding:12px 10px;font-size:9.5px}
+  thead th:first-child{padding-left:16px;background:var(--surface);box-shadow:1px 0 0 var(--line)}
+  td{padding:11px 10px;font-size:11.5px}
+  td:first-child{
+    padding-left:16px;font-size:12px;
+    position:sticky;left:0;background:var(--surface);
+    box-shadow:1px 0 0 var(--line);z-index:1;
+  }
+  tbody tr:hover td:first-child{background:var(--surface-alt)}
+  tbody tr.tr-payback td:first-child{background:var(--pay)}
+  tbody tr.tr-maint td:first-child{background:var(--maint)}
+  tfoot td:first-child{background:var(--surface-alt)}
+  .pb-badge{font-size:8.5px;padding:2px 6px}
+
+  /* Toast above bottom nav */
+  .toast{
+    bottom:calc(86px + env(safe-area-inset-bottom));
+    right:16px;left:16px;
+    text-align:center;
+    border-radius:12px;
+  }
+}
+
+/* ─── Very small (<400px): single KPI column ──────────────── */
+@media(max-width:400px){
+  .kpis{grid-template-columns:1fr}
+  .kcard{min-height:100px;padding:16px}
+  .kval{font-size:28px}
+  .f2{grid-template-columns:1fr;gap:14px}
+  .hdr-sub{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-l">
+    <div class="hdr-mark">FV</div>
+    <div>
+      <div class="hdr-title">Fotovoltaico + Accumulo</div>
+      <div class="hdr-sub">Business plan 25 anni · profilo orario annuale</div>
+    </div>
+  </div>
+  <div class="hdr-r">Piano analitico</div>
+  <button class="menu-btn" id="menuBtn" aria-label="Apri simulazioni" onclick="openSheet()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  </button>
+</header>
+
+<!-- SAVE BAR -->
+<div class="savebar">
+  <span class="savebar-label">Simulazioni</span>
+  <input type="text" class="si si-name" id="simName" placeholder="Nome simulazione…" oninput="syncSimName(this)">
+  <button class="btn btn-primary" onclick="saveSimulation()">Salva</button>
+  <button class="btn" onclick="loadSimulation()">Carica</button>
+  <button class="btn" onclick="exportPresets()" title="Scarica tutte le simulazioni salvate in un file JSON">Esporta</button>
+  <button class="btn" onclick="document.getElementById('importFile').click()" title="Carica simulazioni da un file JSON">Importa</button>
+  <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importPresets(event)">
+  <div class="chips" id="chips"></div>
+</div>
+
+<!-- MAIN -->
+<div class="wrap">
+
+  <!-- LEFT: INPUTS -->
+  <div class="left tab-pane" data-tab="params">
+
+    <!-- INVESTIMENTO -->
+    <div class="panel" id="p-inv">
+      <div class="ph" onclick="togglePanel('p-inv')">
+        <span class="ph-num">01</span>
+        <h2>Investimento iniziale</h2>
+        <span class="ph-arr">▾</span>
+      </div>
+      <div class="pb">
+        <div class="sl">Costi (IVA inclusa)</div>
+        <div class="f2">
+          <div class="f">
+            <div class="fl"><label>Impianto FV + GSE</label></div>
+            <div class="iu"><input type="number" id="costFV" value="19858" oninput="calc()"><span class="unit">€</span></div>
+          </div>
+          <div class="f">
+            <div class="fl"><label>Sistema accumulo</label></div>
+            <div class="iu"><input type="number" id="costBat" value="10491" oninput="calc()"><span class="unit">€</span></div>
+          </div>
+          <div class="f">
+            <div class="fl"><label>Pompa di calore</label></div>
+            <div class="iu"><input type="number" id="costHP" value="19039" oninput="calc()"><span class="unit">€</span></div>
+          </div>
+          <div class="f">
+            <div class="fl"><label>Imp. elettrico + altro</label></div>
+            <div class="iu"><input type="number" id="costElec" value="3842" oninput="calc()"><span class="unit">€</span></div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="tot-row">
+          <span class="tot-label">Totale investimento</span>
+          <span id="totInv" class="tot-value">€ —</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SISTEMA FV -->
+    <div class="panel" id="p-fv">
+      <div class="ph" onclick="togglePanel('p-fv')">
+        <span class="ph-num">02</span>
+        <h2>Sistema fotovoltaico</h2>
+        <span class="ph-arr">▾</span>
+      </div>
+      <div class="pb">
+        <div class="f">
+          <div class="fl"><label>Produzione FV anno 1</label></div>
+          <div class="iu"><input type="number" id="prodFV" value="14509" oninput="calc()"><span class="unit">kWh/a</span></div>
+          <div class="fhint">Resa attesa per il primo anno. Verifica con il simulatore <a href="https://re.jrc.ec.europa.eu/pvg_tools/en/tools.html" target="_blank" rel="noopener"><strong>PVGIS</strong></a> della Commissione Europea o con la stima dell'installatore (dipende da kWp, esposizione, inclinazione e località).</div>
+        </div>
+        <div class="f">
+          <div class="fl"><label>Degradazione annua pannelli</label></div>
+          <div class="iu"><input type="number" id="degradFV" value="0.40" step="0.01" min="0" max="2" oninput="calc()"><span class="unit">%/anno</span></div>
+          <div class="fhint">Valore tipico per pannelli Tier-1: 0,25–0,40 %/anno.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BATTERIA E DISTRIBUZIONE -->
+    <div class="panel" id="p-bat">
+      <div class="ph" onclick="togglePanel('p-bat')">
+        <span class="ph-num">03</span>
+        <h2>Accumulo & distribuzione energia</h2>
+        <span class="ph-arr">▾</span>
+      </div>
+      <div class="pb">
+        <div class="f">
+          <div class="fl"><label>Capacità nominale batteria</label></div>
+          <div class="iu"><input type="number" id="batCap" value="21" min="0" step="0.5" oninput="calc()"><span class="unit">kWh</span></div>
+          <div class="fhint">Capacità a inizio vita; il degrado annuo è gestito sotto.</div>
+        </div>
+        <div class="sep"></div>
+        <div class="sl">Distribuzione energia prodotta</div>
+        <div class="trow">
+          <span class="tlabel">Calcolo automatico da profilo orario</span>
+          <div class="tswitch on" id="sw-auto" onclick="toggleSwitch('sw-auto','autoDist')"><div class="tknob"></div></div>
+        </div>
+        <div class="ibox ibox-blue" id="autoDistInfo">
+          Le percentuali si ricalcolano automaticamente simulando giorno per giorno l'incrocio fra produzione FV, consumi domestici e capacità batteria. Disattiva il toggle per impostare manualmente la ripartizione.
+        </div>
+        <div class="sliders" id="distSliders">
+          <div class="srow">
+            <div class="srow-head">
+              <span class="sdot" style="background:#0d6e3a"></span>
+              <span class="slabel">Autoconsumo istantaneo</span>
+              <span class="spct" id="dispInstant">19,3%</span>
+            </div>
+            <input type="range" min="0" max="100" step="0.1" id="rngInstant" value="19.3" oninput="onSlider('Instant')">
+            <div class="srow-foot"><span id="kwhInstant">— kWh / anno</span></div>
+          </div>
+          <div class="srow">
+            <div class="srow-head">
+              <span class="sdot" style="background:#0a0908"></span>
+              <span class="slabel">Carica batteria</span>
+              <span class="spct" id="dispBat">25,3%</span>
+            </div>
+            <input type="range" min="0" max="100" step="0.1" id="rngBat" value="25.3" oninput="onSlider('Bat')">
+            <div class="srow-foot"><span id="kwhBat">— kWh / anno</span></div>
+          </div>
+          <div class="srow">
+            <div class="srow-head">
+              <span class="sdot" style="background:#9a4a06"></span>
+              <span class="slabel">Immesso in rete (RID)</span>
+              <span class="spct" id="dispRID">55,4%</span>
+            </div>
+            <input type="range" min="0" max="100" step="0.1" id="rngRID" value="55.4" oninput="onSlider('RID')">
+            <div class="srow-foot"><span id="kwhRID">— kWh / anno</span></div>
+          </div>
+        </div>
+        <input type="hidden" id="pctInstant" value="19.3">
+        <input type="hidden" id="pctBat" value="25.3">
+        <input type="hidden" id="pctRID" value="55.4">
+        <div class="sep"></div>
+        <div class="sl">Degrado capacità batteria negli anni</div>
+        <div class="f2">
+          <div class="f">
+            <div class="fl"><label>Anno 10</label></div>
+            <div class="iu"><input type="number" id="batCap10" value="90" min="50" max="100" oninput="calc()"><span class="unit">%</span></div>
+          </div>
+          <div class="f">
+            <div class="fl"><label>Anno 20</label></div>
+            <div class="iu"><input type="number" id="batCap20" value="75" min="40" max="100" oninput="calc()"><span class="unit">%</span></div>
+          </div>
+        </div>
+        <div class="f">
+          <div class="fl"><label>Anno 25</label></div>
+          <div class="iu"><input type="number" id="batCap25" value="65" min="30" max="100" oninput="calc()"><span class="unit">%</span></div>
+          <div class="fhint">Valore tipico per batterie Li-Ion ciclo profondo dopo 25 anni.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TARIFFE -->
+    <div class="panel" id="p-tar">
+      <div class="ph" onclick="togglePanel('p-tar')">
+        <span class="ph-num">04</span>
+        <h2>Tariffe & prezzi energia</h2>
+        <span class="ph-arr">▾</span>
+      </div>
+      <div class="pb">
+        <div class="f2">
+          <div class="f">
+            <div class="fl"><label>Prezzo EE acquisto</label></div>
+            <div class="iu"><input type="number" id="prezzoEE" value="0.388" step="0.001" oninput="calc()"><span class="unit">€/kWh</span></div>
+          </div>
+          <div class="f">
+            <div class="fl"><label>Tariffa RID eccedenze</label></div>
+            <div class="iu"><input type="number" id="prezzoRID" value="0.100" step="0.001" oninput="calc()"><span class="unit">€/kWh</span></div>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="f">
+          <div class="fl"><label>Inflazione energia EE</label></div>
+          <div class="iu"><input type="number" id="inflEE" value="2.5" step="0.1" min="0" max="10" oninput="calc()"><span class="unit">%/anno</span></div>
+          <div class="fhint">Crescita media del costo bolletta. Valore prudente: 2–3 %/anno.</div>
+        </div>
+        <div class="f">
+          <div class="fl"><label>Inflazione valore RID</label></div>
+          <div class="iu"><input type="number" id="inflRID" value="0.5" step="0.1" min="0" max="5" oninput="calc()"><span class="unit">%/anno</span></div>
+          <div class="fhint">Il prezzo all'ingrosso (PUN) cresce meno del costo al consumo: 0,5–1 %/anno.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSUMI & GPL -->
+    <div class="panel" id="p-cons">
+      <div class="ph" onclick="togglePanel('p-cons')">
+        <span class="ph-num">05</span>
+        <h2>Consumi & risparmio GPL</h2>
+        <span class="ph-arr">▾</span>
+      </div>
+      <div class="pb">
+        <div class="ibox ibox-blue">
+          La pompa di calore sostituisce il riscaldamento a GPL/gasolio: il <strong>fabbisogno elettrico</strong> aumenta (riscaldamento + ACS), mentre il <strong>costo del combustibile fossile</strong> si azzera. Calcola entrambi i valori in regime annuale a regime.
+        </div>
+        <div class="f">
+          <div class="fl"><label>Fabbisogno EE post-pompa</label></div>
+          <div class="iu"><input type="number" id="fabbEE" value="13000" oninput="calc()"><span class="unit">kWh/a</span></div>
+          <div class="fhint">Consumo elettrico totale annuo: usi base (illuminazione, elettrodomestici) + pompa di calore. Tipicamente 8.000–15.000 kWh/a per una villa unifamiliare.</div>
+        </div>
+        <div class="f">
+          <div class="fl"><label>Risparmio GPL anno 1</label></div>
+          <div class="iu"><input type="number" id="rispGPL" value="2260" oninput="calc()"><span class="unit">€/anno</span></div>
+          <div class="fhint">Spesa annua per GPL/gasolio che viene eliminata grazie alla pompa. Il valore cresce ogni anno con l'inflazione energetica.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INCENTIVI -->
+    <div class="panel" id="p-inc">
+      <div class="ph" onclick="togglePanel('p-inc')">
+        <span class="ph-num">06</span>
+        <h2>Detrazioni & incentivi</h2>
+        <span class="ph-arr">▾</span>
+      </div>
+      <div class="pb">
+        <div class="sl">Detrazione fiscale 50%</div>
+        <div class="f2">
+          <div class="f">
+            <div class="fl"><label>Totale detrazione</label></div>
+            <div class="iu"><input type="number" id="totDetr" value="17095" oninput="calc()"><span class="unit">€</span></div>
+          </div>
+          <div class="f">
+            <div class="fl"><label>Durata (rate)</label></div>
+            <div class="iu"><input type="number" id="durDetr" value="10" min="1" max="20" oninput="calc()"><span class="unit">anni</span></div>
+          </div>
+        </div>
+        <div class="f">
+          <div class="fl"><label>Conto Termico anno 1</label></div>
+          <div class="iu"><input type="number" id="contoTermico" value="3077" oninput="calc()"><span class="unit">€</span></div>
+          <div class="fhint">Incentivo una-tantum GSE, incassato solo nell'anno 1.</div>
+        </div>
+        <div class="sep"></div>
+        <div class="sl">Incentivo Conto Energia impianto esistente (Revamping)</div>
+        <div class="ibox ibox-blue">
+          Incentivo già acquisito sull'impianto esistente, indipendente dal nuovo investimento. Per coerenza metodologica è escluso dal ROI per default.
+        </div>
+        <div class="trow">
+          <span class="tlabel">Includi incentivo revamping nel ROI</span>
+          <div class="tswitch" id="sw-rev" onclick="toggleSwitch('sw-rev','inclRev')"><div class="tknob"></div></div>
+        </div>
+        <div class="f">
+          <div class="fl"><label>kWh impianto esistente/anno</label></div>
+          <div class="iu"><input type="number" id="kwhRev" value="3482" oninput="calc()"><span class="unit">kWh</span></div>
+        </div>
+        <div class="f2">
+          <div class="f">
+            <div class="fl"><label>Tariffa incentivante</label></div>
+            <div class="iu"><input type="number" id="tarRev" value="0.480" step="0.001" oninput="calc()"><span class="unit">€/kWh</span></div>
+          </div>
+          <div class="f">
+            <div class="fl"><label>Anni piena tariffa</label></div>
+            <div class="iu"><input type="number" id="anniRev" value="3" min="0" max="20" oninput="calc()"><span class="unit">anni</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINANZIAMENTO -->
+    <div class="panel" id="p-fin">
+      <div class="ph" onclick="togglePanel('p-fin')">
+        <span class="ph-num">07</span>
+        <h2>Finanziamento</h2>
+        <span class="ph-arr">▾</span>
+      </div>
+      <div class="pb">
+        <div class="trow">
+          <span class="tlabel">Utilizzo finanziamento</span>
+          <div class="tswitch on" id="sw-fin" onclick="toggleSwitch('sw-fin','useFin')"><div class="tknob"></div></div>
+        </div>
+        <div class="sep"></div>
+        <div class="f2">
+          <div class="f">
+            <div class="fl"><label>Capitale finanziato</label></div>
+            <div class="iu"><input type="number" id="capFin" value="34191" oninput="calc()"><span class="unit">€</span></div>
+          </div>
+          <div class="f">
+            <div class="fl"><label>Durata finanziamento</label></div>
+            <div class="iu"><input type="number" id="durFin" value="6" min="1" max="25" oninput="calc()"><span class="unit">anni</span></div>
+          </div>
+        </div>
+        <div class="f2">
+          <div class="f">
+            <div class="fl"><label>Tasso annuo</label></div>
+            <div class="iu"><input type="number" id="tassoFin" value="3.45" step="0.01" oninput="calc()"><span class="unit">%</span></div>
+          </div>
+          <div class="f">
+            <div class="fl"><label>Rata annua (PMT)</label></div>
+            <div class="iu"><input type="number" id="rataFin" value="6412" oninput="calc()"><span class="unit">€/a</span></div>
+            <div class="fhint">Puoi inserire la rata contrattuale effettiva al posto del calcolo automatico.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MANUTENZIONE -->
+    <div class="panel" id="p-man">
+      <div class="ph" onclick="togglePanel('p-man')">
+        <span class="ph-num">08</span>
+        <h2>Manutenzione straordinaria</h2>
+        <span class="ph-arr">▾</span>
+      </div>
+      <div class="pb">
+        <div class="ibox ibox-blue">
+          L'inverter FV ha una vita media di 12–15 anni. Includere la sostituzione dà un payback più realistico.
+        </div>
+        <div class="trow">
+          <span class="tlabel">Includi sostituzione inverter</span>
+          <div class="tswitch on" id="sw-man" onclick="toggleSwitch('sw-man','useMaint')"><div class="tknob"></div></div>
+        </div>
+        <div class="sep"></div>
+        <div class="f2">
+          <div class="f">
+            <div class="fl"><label>Anno intervento</label></div>
+            <div class="iu"><input type="number" id="annoMaint" value="13" min="1" max="24" oninput="calc()"><span class="unit">anno</span></div>
+          </div>
+          <div class="f">
+            <div class="fl"><label>Costo intervento</label></div>
+            <div class="iu"><input type="number" id="costoMaint" value="2500" oninput="calc()"><span class="unit">€</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /left -->
+
+  <!-- RIGHT COLUMN -->
+  <div class="right">
+
+    <!-- TAB: RESULTS (KPI + chart) -->
+    <div class="tab-pane is-active" data-tab="results">
+
+    <!-- KPI -->
+    <div class="kpis">
+      <div class="kcard">
+        <div class="klabel">Payback</div>
+        <div class="kval" id="kPayback">—</div>
+        <div class="ksub">Senza ricorso al finanziamento</div>
+      </div>
+      <div class="kcard">
+        <div class="klabel">Payback con finanziamento</div>
+        <div class="kval" id="kPaybackFin">—</div>
+        <div class="ksub">Considerando capitale finanziato e rate</div>
+      </div>
+      <div class="kcard" id="kcardNet">
+        <div class="klabel">Vantaggio netto · 25 anni</div>
+        <div class="kval" id="kNet">—</div>
+        <div class="ksub">Cumulato dei vantaggi al netto dell'investimento</div>
+      </div>
+      <div class="kcard">
+        <div class="klabel">Rendimento medio</div>
+        <div class="kval" id="kROI">—</div>
+        <div class="ksub">Rendita media annua sull'investimento</div>
+      </div>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-panel">
+      <div class="chart-hdr">
+        <h3>Flusso di cassa cumulato</h3>
+        <div class="ctabs">
+          <button class="ctab active" onclick="setChartMode('cumul')">Cumulato</button>
+          <button class="ctab" onclick="setChartMode('annual')">Annuale</button>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="li"><span class="ld" style="background:#0a0908"></span>Senza finanziamento</div>
+        <div class="li"><span class="ld" style="background:#9a4a06;height:0;border-top:2px dashed #9a4a06"></span>Con finanziamento</div>
+        <div class="li"><span class="ld" style="background:#a39f97"></span>Break-even</div>
+      </div>
+      <canvas id="chartCanvas" height="260"></canvas>
+    </div>
+
+    </div><!-- /tab results -->
+
+    <!-- TABLE -->
+    <div class="tpanel tab-pane" data-tab="table">
+      <div class="thdr">
+        <h3>Piano analitico 25 anni</h3>
+        <div class="thdr-meta">
+          <span class="pill"><span class="pill-dot" style="background:#fdf5d3"></span>Anno payback</span>
+          <span class="pill"><span class="pill-dot" style="background:#fbeed4"></span>Manutenzione</span>
+        </div>
+      </div>
+      <div class="tscroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Anno</th>
+              <th>Prod. FV<br>kWh</th>
+              <th>Autocons.<br>istantaneo</th>
+              <th>Autocons.<br>batteria</th>
+              <th>Ritiro<br>Dedicato</th>
+              <th>Risp.<br>GPL</th>
+              <th>Detr.<br>fiscale</th>
+              <th>C.Termico</th>
+              <th>Incentivo<br>Revamping</th>
+              <th>Costo EE<br>residuo</th>
+              <th>Manut.<br>straord.</th>
+              <th>TOT.<br>VANTAGGI</th>
+              <th>Cumul.<br>senza fin.</th>
+              <th>Rata<br>fin.</th>
+              <th>Flusso<br>c/fin.</th>
+              <th>Cumul.<br>c/fin.</th>
+            </tr>
+          </thead>
+          <tbody id="tBody"></tbody>
+          <tfoot id="tFoot"></tfoot>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /right -->
+</div><!-- /wrap -->
+
+<!-- BOTTOM NAVIGATION (mobile only) -->
+<nav class="mtabs" id="mtabs" role="tablist" aria-label="Sezioni">
+  <button class="mtab active" data-target="results" onclick="setMobileTab('results',event)" aria-selected="true">
+    <span class="mtab-dot"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-6"/></svg>
+    <span class="mtab-label">Risultati</span>
+  </button>
+  <button class="mtab" data-target="params" onclick="setMobileTab('params',event)" aria-selected="false">
+    <span class="mtab-dot"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span class="mtab-label">Parametri</span>
+  </button>
+  <button class="mtab" data-target="table" onclick="setMobileTab('table',event)" aria-selected="false">
+    <span class="mtab-dot"></span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+    <span class="mtab-label">Piano</span>
+  </button>
+</nav>
+
+<!-- BOTTOM SHEET (mobile only) -->
+<div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()"></div>
+<aside class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Simulazioni salvate">
+  <div class="sheet-handle" id="sheetHandle"></div>
+  <div class="sheet-hdr">
+    <h3>Simulazioni</h3>
+    <button class="sheet-close" onclick="closeSheet()" aria-label="Chiudi">×</button>
+  </div>
+  <div class="sheet-body">
+    <input type="text" class="si" id="simNameSheet" placeholder="Nome simulazione…" oninput="syncSimName(this)">
+    <div class="sheet-actions">
+      <button class="btn btn-primary" onclick="saveSimulation()">Salva</button>
+      <button class="btn" onclick="loadSimulation()">Carica</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" onclick="exportPresets()">Esporta JSON</button>
+      <button class="btn" onclick="document.getElementById('importFile').click()">Importa JSON</button>
+    </div>
+    <div class="sheet-section-title">Salvate</div>
+    <div class="chips" id="chipsSheet"></div>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// PROFILO ANNUALE DI RIFERIMENTO (364 giorni)
+// Quartetti: [fv, auto, F1, F23] in centesimi di kWh (×100).
+// fv     = produzione FV giornaliera
+// auto   = quota istantaneamente autoconsumata (sovrapposizione produzione/consumo diurno)
+// F1     = consumo diurno residuo (fascia F1, 8–19)
+// F23    = consumo serale/notturno (fasce F2/F3, 19–8) — caricabile da batteria
+// I valori vengono riscalati su produzione e consumo dell'utente.
+// ─────────────────────────────────────────────
+const DAILY_RAW = "3300,660,778,3542,3175,830,877,3993,1200,470,1045,4755,3100,820,832,3788,3325,770,765,3485,3100,1230,1016,4624,2225,760,1102,5018,3450,850,920,4190,3425,1010,886,4034,2725,820,969,4411,3450,810,888,4042,3600,1040,893,4067,3250,980,953,4337,2850,830,976,4444,3350,960,926,4214,3300,1120,924,4206,2250,850,1000,4550,3625,1060,809,3681,3125,1170,1088,4952,1375,540,1133,5157,1825,710,1007,4583,2600,750,877,3993,3250,840,855,3895,1850,660,913,4157,2600,770,891,4059,2850,800,937,4263,850,340,825,3755,3625,810,787,3583,4025,710,636,2894,3100,700,780,3550,3875,880,737,3353,2325,690,403,4227,3775,1050,343,3597,2725,570,291,3049,4200,560,210,2200,4425,770,290,3040,3375,1040,395,4145,4425,960,343,3597,2925,1070,453,4757,3650,1070,399,4191,3950,970,369,3871,4475,580,200,2100,4650,670,256,2684,4075,880,348,3652,4575,980,327,3433,4500,1080,290,3040,3600,1070,364,3816,2450,660,384,4026,4525,640,271,2849,4650,710,278,2912,4550,790,296,3104,3775,890,330,3460,4350,1000,320,3360,3150,950,329,3451,4875,770,188,1972,2000,200,54,566,5375,480,109,1141,4075,950,358,3762,5200,1220,284,2976,2350,890,443,4647,3500,930,1018,2922,325,130,1658,4762,4850,1020,855,2455,4850,950,992,2848,2525,720,1250,3590,5125,1100,909,2611,5550,1020,674,1936,4825,520,152,438,2000,310,212,608,4925,400,160,460,5450,310,165,475,2000,710,638,1832,4300,650,654,1876,300,120,1206,3464,675,270,1354,3886,2250,860,1142,3278,4750,770,628,1802,5450,830,248,712,5575,950,413,1187,3625,660,338,972,5550,620,150,430,450,170,1263,3627,575,230,1632,4688,3050,950,1286,3694,1725,690,1589,4561,1700,680,1555,4465,750,290,1534,4406,4725,940,615,1765,5150,400,238,682,575,230,1415,4065,600,240,1532,4398,1500,600,1482,3938,4750,1150,864,2296,6025,1090,235,625,6050,660,129,341,5225,510,131,349,6025,1050,692,1838,6125,860,200,530,6125,350,167,443,6125,450,123,327,6200,570,120,320,5650,800,172,458,6050,620,213,567,4075,460,148,392,5950,620,180,480,4850,450,186,494,5425,560,120,320,5100,580,123,327,4600,640,137,363,1675,370,541,1439,450,180,1425,3785,625,250,1367,3633,2250,400,109,291,6400,430,139,371,6325,660,134,356,4775,550,134,356,3125,390,183,487,3600,440,118,312,2675,330,219,581,6400,560,156,414,3325,440,98,262,5225,640,70,480,6075,650,75,515,6225,580,61,419,6325,500,66,454,5825,630,52,358,5500,430,99,681,4275,500,54,376,4925,570,57,393,5075,620,72,498,1075,310,126,874,3075,400,66,454,4475,550,49,341,275,110,100,690,3775,430,80,550,5375,560,68,472,1600,450,99,681,1000,360,130,900,5675,460,56,384,1800,400,59,411,5725,340,86,594,6000,390,43,297,4175,370,75,515,4325,480,51,349,6100,670,68,472,6275,410,71,489,5675,420,38,262,5550,340,71,489,6075,390,40,280,1625,270,75,515,6025,830,40,280,4000,530,92,638,5225,330,15,265,6525,450,30,530,4650,340,29,521,2300,270,24,426,6450,290,31,559,5350,460,27,483,4125,550,39,701,2975,270,25,445,2575,240,28,492,6025,430,31,549,2475,310,15,265,2775,260,40,710,1425,380,31,559,6450,390,28,502,5675,350,23,407,3825,410,21,379,4050,270,29,511,5600,260,27,483,6475,440,23,417,5525,640,15,275,6325,410,29,511,6275,430,18,322,6150,410,16,294,5725,270,30,530,4200,300,29,521,2200,320,30,530,3675,480,28,492,4725,270,34,606,6075,460,15,265,4750,370,38,682,4200,340,41,459,4600,390,41,459,4200,190,36,394,6325,650,26,284,6200,330,53,587,5475,280,38,422,5300,270,52,578,4325,240,21,229,6075,430,37,413,4425,340,49,541,4350,410,14,156,1950,230,40,440,2875,190,70,780,4025,260,36,404,5450,590,56,624,5025,330,41,459,2325,290,38,422,4950,500,55,615,5625,260,36,394,4950,310,34,376,5075,350,38,422,6025,320,45,495,2775,240,50,550,6125,640,28,312,5600,260,50,550,4375,250,39,431,4600,260,45,495,4050,270,32,358,4350,310,46,514,5700,280,38,422,5100,730,56,594,5025,470,34,356,1775,230,36,384,5900,220,46,484,6150,230,34,356,5950,390,43,457,5900,890,36,384,5775,570,24,256,5675,570,44,466,3500,160,21,219,5250,250,49,521,4700,360,46,484,4325,320,54,576,5775,480,40,430,5100,500,38,402,3575,420,63,667,4550,390,33,347,5550,440,33,347,4750,430,45,475,4975,340,35,375,4350,470,31,329,5525,270,37,393,5125,550,50,530,4050,280,49,521,3775,260,46,484,5550,340,29,311,5575,250,52,548,3925,240,37,393,1550,250,38,402,5725,330,65,695,3625,270,45,475,5400,240,55,515,2725,230,42,388,5125,520,48,452,5600,400,48,452,5475,410,49,461,4150,530,89,831,1925,240,33,307,5200,230,39,361,2475,280,46,434,2600,240,56,524,1500,420,111,1039,5350,210,21,199,5200,210,30,280,5100,200,18,172,5050,210,18,172,4975,200,30,280,4825,200,18,172,1400,150,39,361,1275,270,100,930,1375,210,56,524,1600,200,51,479,4050,260,65,605,3050,220,55,515,3800,350,64,596,4525,620,50,470,5400,990,80,750,5325,270,60,560,4425,250,54,506,4650,250,44,406,3000,220,97,393,75,30,189,771,5150,550,105,425,2500,570,286,1164,3950,720,428,1742,3200,340,103,417,4000,250,124,506,4850,670,144,586,2850,380,221,899,4200,810,462,1878,1550,380,182,738,5075,230,136,554,4975,830,444,1806,3050,680,401,1629,1725,660,797,3243,2200,650,708,2882,4750,760,521,2119,2475,820,633,2577,3075,760,552,2248,1425,480,718,2922,1400,500,805,3275,1575,530,716,2914,1175,410,797,3243,3975,920,454,1846,1825,600,659,2681,925,370,892,3628,4375,720,470,1910,4275,740,552,2248,2300,800,750,3050,3450,820,537,2183,3375,920,474,1926,2050,680,908,2642,3675,770,680,1980,700,280,1138,3312,725,280,1061,3089,3750,440,143,417,725,230,222,648,2900,410,197,573,2250,340,230,670,3400,190,151,439,2600,180,179,521,3400,270,192,558,375,140,169,491,325,130,169,491,3275,480,225,655,950,230,179,521,2650,190,184,536,3525,220,184,536,3500,190,118,342,3450,260,197,573,2750,300,192,558,1675,380,286,834,3375,530,174,506,3450,170,197,573,3275,180,166,484,3225,200,164,476,3350,250,184,536,3100,370,192,558,275,100,353,1027,1450,380,258,752,400,130,189,551,75,30,201,679,25,0,249,841,925,180,160,540,25,10,208,702,25,10,318,1072,25,10,270,910,25,10,236,794,100,40,297,1003,250,100,208,702,1075,160,160,540,400,140,199,671,750,190,290,980,1850,400,178,602,2525,250,153,517,1000,200,206,694,1025,190,165,555,2925,260,194,656,3150,290,144,486,800,230,290,980,275,110,295,995,2475,270,130,440,2650,260,194,656,450,160,197,663,2050,230,181,609,325,130,254,856,2675,320,201,679,1500,360,190,640,25,0,295,995,100,30,201,679,900,220,213,717,2725,410,194,656";
+let DAILY = null;
+function getDaily(){
+  if(DAILY) return DAILY;
+  const arr = DAILY_RAW.split(',').map(Number);
+  DAILY = [];
+  for(let i = 0; i < arr.length; i += 4){
+    DAILY.push({fv: arr[i]/100, auto: arr[i+1]/100, f1: arr[i+2]/100, f23: arr[i+3]/100});
+  }
+  return DAILY;
+}
+const BASELINE_FV = 13168;   // produzione totale del profilo di riferimento (kWh)
+const BASELINE_USE = 7894;   // consumo totale del profilo di riferimento (kWh)
+
+// Simulazione giornaliera: ritorna {auto, bat, rid} in kWh/anno per dato (prod, cons, batCap)
+function simulateDistribution(prodFV, consEE, batCap){
+  const days = getDaily();
+  const kProd = prodFV / BASELINE_FV;
+  const kCons = consEE / BASELINE_USE;
+  let auto = 0, bat = 0, exp = 0;
+  for(const d of days){
+    const fvN = d.fv * kProd;
+    const dayUse = (d.auto + d.f1) * kCons;
+    const nightUse = d.f23 * kCons;
+    const baseMatch = Math.min(d.fv, d.auto + d.f1);
+    const eff = baseMatch > 0.01 ? d.auto / baseMatch : 0.6;
+    const autoN = eff * Math.min(fvN, dayUse);
+    const expN = Math.max(0, fvN - autoN);
+    const batN = Math.min(expN, nightUse, batCap);
+    auto += autoN; bat += batN; exp += expN;
+  }
+  const rid = exp - bat;
+  return { auto, bat, rid, prod: prodFV };
+}
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+const state = { inclRev: false, useFin: true, useMaint: true, autoDist: true };
+let chartMode = 'cumul';
+let chartData = [];
+let lastPct = { Instant: 19.3, Bat: 25.3, RID: 55.4 };
+
+function togglePanel(id){
+  document.getElementById(id).classList.toggle('collapsed');
+}
+function toggleSwitch(swId, key){
+  state[key] = !state[key];
+  const sw = document.getElementById(swId);
+  sw.classList.toggle('on', state[key]);
+  if(key === 'autoDist') refreshSlidersUI();
+  calc();
+}
+
+// ─────────────────────────────────────────────
+// SLIDERS — auto-bilanciamento a 100%
+// ─────────────────────────────────────────────
+const SLIDER_KEYS = ['Instant','Bat','RID'];
+function fmtPct(v){ return v.toLocaleString('it-IT',{minimumFractionDigits:1,maximumFractionDigits:1}) + '%'; }
+
+function onSlider(changed){
+  if(state.autoDist) return; // in auto mode i slider sono read-only
+  const newVal = +document.getElementById('rng'+changed).value;
+  const others = SLIDER_KEYS.filter(k => k !== changed);
+  const remaining = Math.max(0, 100 - newVal);
+  const oldSum = lastPct[others[0]] + lastPct[others[1]];
+  let v0, v1;
+  if(oldSum < 0.01){
+    v0 = v1 = remaining / 2;
+  } else {
+    v0 = remaining * lastPct[others[0]] / oldSum;
+    v1 = remaining * lastPct[others[1]] / oldSum;
+  }
+  // Arrotondo a 1 decimale e correggo eventuale drift
+  v0 = Math.round(v0*10)/10;
+  v1 = Math.round((remaining - v0)*10)/10;
+  setSliderValue(changed, newVal);
+  setSliderValue(others[0], v0);
+  setSliderValue(others[1], v1);
+  SLIDER_KEYS.forEach(k => lastPct[k] = +document.getElementById('rng'+k).value);
+  calc();
+}
+
+function setSliderValue(key, val){
+  document.getElementById('rng'+key).value = val;
+  document.getElementById('pct'+key).value = val;
+}
+
+function applyAutoDistribution(prod, cons, batCap){
+  const r = simulateDistribution(prod, cons, batCap);
+  if(prod < 1) return {Instant:0, Bat:0, RID:0};
+  let pInst = r.auto / prod * 100;
+  let pBat  = r.bat  / prod * 100;
+  let pRID  = Math.max(0, 100 - pInst - pBat);
+  // round
+  pInst = Math.round(pInst*10)/10;
+  pBat = Math.round(pBat*10)/10;
+  pRID = Math.round((100 - pInst - pBat)*10)/10;
+  setSliderValue('Instant', pInst);
+  setSliderValue('Bat', pBat);
+  setSliderValue('RID', pRID);
+  lastPct = {Instant: pInst, Bat: pBat, RID: pRID};
+  return {Instant:pInst, Bat:pBat, RID:pRID};
+}
+
+function refreshSlidersUI(){
+  const sliders = document.getElementById('distSliders');
+  const info = document.getElementById('autoDistInfo');
+  const auto = state.autoDist;
+  sliders.classList.toggle('auto', auto);
+  ['rngInstant','rngBat','rngRID'].forEach(id => {
+    document.getElementById(id).disabled = auto;
+  });
+  if(info) info.style.display = auto ? '' : 'none';
+}
+
+// ─────────────────────────────────────────────
+// READ INPUTS
+// ─────────────────────────────────────────────
+function num(id){ return parseFloat(document.getElementById(id).value) || 0; }
+
+function readParams(){
+  return {
+    costFV: num('costFV'), costBat: num('costBat'), costHP: num('costHP'), costElec: num('costElec'),
+    prodFV: num('prodFV'),
+    degradFV: num('degradFV') / 100,
+    batCap: num('batCap'),
+    pctInstant: (+document.getElementById('rngInstant').value) / 100,
+    pctBat: (+document.getElementById('rngBat').value) / 100,
+    pctRID: (+document.getElementById('rngRID').value) / 100,
+    batCap10: num('batCap10') / 100,
+    batCap20: num('batCap20') / 100,
+    batCap25: num('batCap25') / 100,
+    prezzoEE: num('prezzoEE'), prezzoRID: num('prezzoRID'),
+    inflEE: num('inflEE') / 100, inflRID: num('inflRID') / 100,
+    fabbEE: num('fabbEE'),
+    rispGPL: num('rispGPL'),
+    totDetr: num('totDetr'), durDetr: num('durDetr'),
+    contoTermico: num('contoTermico'),
+    kwhRev: num('kwhRev'), tarRev: num('tarRev'), anniRev: num('anniRev'),
+    inclRev: state.inclRev,
+    useFin: state.useFin,
+    capFin: num('capFin'), durFin: num('durFin'), tassoFin: num('tassoFin') / 100, rataFin: num('rataFin'),
+    useMaint: state.useMaint,
+    annoMaint: num('annoMaint'), costoMaint: num('costoMaint'),
+  };
+}
+
+// ─────────────────────────────────────────────
+// BATTERY DEGRADATION FACTOR
+// ─────────────────────────────────────────────
+function batFactor(n, p){
+  if(n <= 1) return 1;
+  if(n <= 10) return 1 - (1 - p.batCap10) * (n-1) / 9;
+  if(n <= 20) return p.batCap10 - (p.batCap10 - p.batCap20) * (n-10) / 10;
+  return p.batCap20 - (p.batCap20 - p.batCap25) * (n-20) / 5;
+}
+
+// ─────────────────────────────────────────────
+// CALCULATE 25-YEAR PLAN
+// ─────────────────────────────────────────────
+function calcPlan(p){
+  const inv = p.costFV + p.costBat + p.costHP + p.costElec;
+  const rows = [];
+  let cumSimple = -inv;
+  let cumFin = -inv + (p.useFin ? p.capFin : 0);
+  let paybackSimple = null, paybackFin = null;
+
+  for(let n = 1; n <= 25; n++){
+    const infl = Math.pow(1 + p.inflEE, n-1);
+    const inflRid = Math.pow(1 + p.inflRID, n-1);
+    const fvDeg = Math.pow(1 - p.degradFV, n-1);
+    const bf = batFactor(n, p);
+
+    const fvProd = p.prodFV * fvDeg;
+    const prezzo = p.prezzoEE * infl;
+
+    // Autoconsumo istantaneo
+    const kwh_inst = fvProd * p.pctInstant;
+    const val_inst = kwh_inst * prezzo;
+
+    // Autoconsumo batteria
+    const kwh_bat = fvProd * p.pctBat * bf;
+    const val_bat = kwh_bat * prezzo;
+
+    // RID
+    const kwh_rid = fvProd * p.pctRID;
+    const val_rid = kwh_rid * p.prezzoRID * inflRid;
+
+    // Risparmio GPL
+    const val_gpl = p.rispGPL * infl;
+
+    // Costo EE residuo (NEGATIVO)
+    const kwh_import = Math.max(0, p.fabbEE - kwh_inst - kwh_bat);
+    const val_ee = -(kwh_import * prezzo);
+
+    // Detrazione fiscale
+    const val_detr = n <= p.durDetr ? p.totDetr / p.durDetr : 0;
+
+    // Conto Termico
+    const val_ct = n === 1 ? p.contoTermico : 0;
+
+    // Incentivo revamping (sempre calcolato, mostrato separatamente)
+    let val_rev = 0;
+    if(n <= p.anniRev) val_rev = p.kwhRev * p.tarRev;
+    else if(n === p.anniRev + 1) val_rev = p.kwhRev * p.tarRev * 0.5;
+
+    // Manutenzione
+    const val_maint = (p.useMaint && n === p.annoMaint) ? -p.costoMaint : 0;
+
+    // Totale vantaggi (include revamping solo se flag attivo)
+    const tot = val_inst + val_bat + val_rid + val_gpl + val_ee + val_detr + val_ct
+              + (p.inclRev ? val_rev : 0) + val_maint;
+
+    // Cumulativi
+    const prevSimple = cumSimple;
+    cumSimple += tot;
+    if(paybackSimple === null && prevSimple < 0 && cumSimple >= 0) paybackSimple = n;
+
+    const rata = p.useFin && n <= p.durFin ? p.rataFin : 0;
+    const flussoFin = tot - rata;
+    const prevFin = cumFin;
+    cumFin += flussoFin;
+    if(paybackFin === null && prevFin < 0 && cumFin >= 0) paybackFin = n;
+
+    rows.push({ n, fvProd, val_inst, val_bat, val_rid, val_gpl, val_detr, val_ct,
+                val_rev, val_ee, val_maint, tot, cumSimple, rata, flussoFin, cumFin });
+  }
+  return { rows, inv, cumSimple, cumFin, paybackSimple, paybackFin };
+}
+
+// ─────────────────────────────────────────────
+// FORMAT
+// ─────────────────────────────────────────────
+function fmt(v, d=0){
+  if(Math.abs(v) < 0.5 && d===0) return '<span class="z">—</span>';
+  const s = Math.abs(v).toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d});
+  if(v < 0) return `<span class="neg">−${s}</span>`;
+  return `<span class="pos">+${s}</span>`;
+}
+function fmtE(v, d=0){
+  const s = Math.abs(v).toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d});
+  if(v < 0) return `<span class="neg">−€${s}</span>`;
+  return `<span class="pos">+€${s}</span>`;
+}
+function fmtKwh(v){ return Math.round(v).toLocaleString('it-IT'); }
+
+// ─────────────────────────────────────────────
+// MAIN CALC
+// ─────────────────────────────────────────────
+function calc(){
+  // Se auto-mode attivo, ricalcola la distribuzione dal profilo annuale
+  if(state.autoDist){
+    const prod = num('prodFV');
+    const cons = num('fabbEE');
+    const batCap = num('batCap');
+    applyAutoDistribution(prod, cons, batCap);
+  }
+  const p = readParams();
+  const inv = p.costFV + p.costBat + p.costHP + p.costElec;
+
+  // Total investment display
+  document.getElementById('totInv').textContent = '€ ' + Math.round(inv).toLocaleString('it-IT');
+
+  // Aggiorna display % e kWh per gli slider
+  const pInst = +document.getElementById('rngInstant').value;
+  const pBat  = +document.getElementById('rngBat').value;
+  const pRID  = +document.getElementById('rngRID').value;
+  document.getElementById('dispInstant').textContent = fmtPct(pInst);
+  document.getElementById('dispBat').textContent     = fmtPct(pBat);
+  document.getElementById('dispRID').textContent     = fmtPct(pRID);
+  const kInst = Math.round(p.prodFV * pInst/100);
+  const kBat  = Math.round(p.prodFV * pBat/100);
+  const kRID  = Math.round(p.prodFV * pRID/100);
+  document.getElementById('kwhInstant').textContent = kInst.toLocaleString('it-IT') + ' kWh';
+  document.getElementById('kwhBat').textContent     = kBat.toLocaleString('it-IT') + ' kWh';
+  document.getElementById('kwhRID').textContent     = kRID.toLocaleString('it-IT') + ' kWh';
+
+  const { rows, cumSimple, cumFin, paybackSimple, paybackFin } = calcPlan(p);
+  chartData = rows;
+
+  // KPIs — il suffisso usa <span class="kval-suffix"> per stile più discreto
+  const sfx = (s) => `<span class="kval-suffix">${s}</span>`;
+  const pbEl = document.getElementById('kPayback');
+  pbEl.innerHTML = paybackSimple ? `${paybackSimple} ${sfx('anni')}` : `&gt;&nbsp;25 ${sfx('anni')}`;
+  const pbFinEl = document.getElementById('kPaybackFin');
+  if(!p.useFin) pbFinEl.innerHTML = '—';
+  else pbFinEl.innerHTML = paybackFin ? `${paybackFin} ${sfx('anni')}` : `&gt;&nbsp;25 ${sfx('anni')}`;
+  const netV = Math.round(cumSimple);
+  const netEl = document.getElementById('kNet');
+  netEl.innerHTML = (netV >= 0 ? '+€ ' : '−€ ') + Math.abs(netV).toLocaleString('it-IT');
+  const netCard = document.getElementById('kcardNet');
+  netCard.classList.toggle('is-pos', netV >= 0);
+  netCard.classList.toggle('is-neg', netV < 0);
+  const roi = inv > 0 ? (cumSimple / inv / 25 * 100) : 0;
+  document.getElementById('kROI').innerHTML = roi.toFixed(1).replace('.', ',') + ' ' + sfx('% / anno');
+
+  // Table
+  let html = '';
+  rows.forEach(r => {
+    const isPB = paybackSimple === r.n;
+    const isMaint = p.useMaint && r.n === p.annoMaint;
+    const cls = isPB ? 'tr-payback' : (isMaint ? 'tr-maint' : '');
+    html += `<tr class="${cls}">
+      <td>${r.n}${isPB ? '<span class="pb-badge">PAYBACK</span>' : ''}</td>
+      <td>${fmtKwh(r.fvProd)}</td>
+      <td>${fmtE(r.val_inst)}</td>
+      <td>${fmtE(r.val_bat)}</td>
+      <td>${fmtE(r.val_rid)}</td>
+      <td>${fmtE(r.val_gpl)}</td>
+      <td>${fmtE(r.val_detr)}</td>
+      <td>${r.val_ct > 0 ? fmtE(r.val_ct) : '<span class="z">—</span>'}</td>
+      <td>${r.val_rev > 0 ? (p.inclRev ? fmtE(r.val_rev) : '<span style="color:var(--light);font-size:10px">excl. '+Math.round(r.val_rev).toLocaleString('it-IT')+'</span>') : '<span class="z">—</span>'}</td>
+      <td>${fmtE(r.val_ee)}</td>
+      <td>${r.val_maint < 0 ? fmtE(r.val_maint) : '<span class="z">—</span>'}</td>
+      <td style="font-weight:700">${fmtE(r.tot)}</td>
+      <td style="font-weight:700">${fmtE(r.cumSimple)}</td>
+      <td>${r.rata > 0 ? fmtE(-r.rata) : '<span class="z">—</span>'}</td>
+      <td>${fmtE(r.flussoFin)}</td>
+      <td style="font-weight:700">${fmtE(r.cumFin)}</td>
+    </tr>`;
+  });
+  document.getElementById('tBody').innerHTML = html;
+
+  // Footer totals
+  const totals = rows.reduce((a,r) => ({
+    fvProd: a.fvProd + r.fvProd,
+    val_inst: a.val_inst+r.val_inst, val_bat: a.val_bat+r.val_bat,
+    val_rid: a.val_rid+r.val_rid, val_gpl: a.val_gpl+r.val_gpl,
+    val_detr: a.val_detr+r.val_detr, val_ct: a.val_ct+r.val_ct,
+    val_rev: a.val_rev+r.val_rev, val_ee: a.val_ee+r.val_ee,
+    val_maint: a.val_maint+r.val_maint, tot: a.tot+r.tot,
+    rata: a.rata+r.rata
+  }), {fvProd:0,val_inst:0,val_bat:0,val_rid:0,val_gpl:0,val_detr:0,val_ct:0,val_rev:0,val_ee:0,val_maint:0,tot:0,rata:0});
+  document.getElementById('tFoot').innerHTML = `<tr>
+    <td>TOT.</td>
+    <td>${fmtKwh(totals.fvProd)}</td>
+    <td>${fmtE(totals.val_inst)}</td>
+    <td>${fmtE(totals.val_bat)}</td>
+    <td>${fmtE(totals.val_rid)}</td>
+    <td>${fmtE(totals.val_gpl)}</td>
+    <td>${fmtE(totals.val_detr)}</td>
+    <td>${fmtE(totals.val_ct)}</td>
+    <td>${fmtE(p.inclRev ? totals.val_rev : 0)}</td>
+    <td>${fmtE(totals.val_ee)}</td>
+    <td>${fmtE(totals.val_maint)}</td>
+    <td style="font-weight:800">${fmtE(totals.tot)}</td>
+    <td style="font-weight:800">${fmtE(rows[24].cumSimple)}</td>
+    <td>${fmtE(-totals.rata)}</td>
+    <td></td>
+    <td style="font-weight:800">${fmtE(rows[24].cumFin)}</td>
+  </tr>`;
+
+  drawChart();
+}
+
+// ─────────────────────────────────────────────
+// CHART
+// ─────────────────────────────────────────────
+function setChartMode(mode){
+  chartMode = mode;
+  document.querySelectorAll('.ctab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  drawChart();
+}
+
+function drawChart(){
+  const canvas = document.getElementById('chartCanvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.parentElement.clientWidth - 36;
+  const h = 240;
+  canvas.width = w * dpr; canvas.height = h * dpr;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  if(!chartData.length) return;
+
+  const pad = {top:16, right:16, bottom:32, left:68};
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+
+  const dataSimple = chartMode === 'cumul'
+    ? chartData.map(r => r.cumSimple)
+    : chartData.map(r => r.tot);
+  const dataFin = chartMode === 'cumul'
+    ? chartData.map(r => r.cumFin)
+    : chartData.map(r => r.flussoFin);
+
+  const allVals = [...dataSimple, ...dataFin];
+  const minV = Math.min(...allVals);
+  const maxV = Math.max(...allVals);
+  const range = maxV - minV || 1;
+  const pad20 = range * 0.1;
+
+  function xOf(i){ return pad.left + (i / 24) * cw; }
+  function yOf(v){ return pad.top + ch - ((v - minV + pad20) / (range + 2 * pad20)) * ch; }
+  const y0 = yOf(0);
+
+  // Grid lines
+  ctx.strokeStyle = '#ebe7df'; ctx.lineWidth = 1;
+  for(let i = 0; i <= 4; i++){
+    const y = pad.top + (i / 4) * ch;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+  }
+
+  // Zero line
+  if(y0 >= pad.top && y0 <= pad.top + ch){
+    ctx.strokeStyle = '#a39f97'; ctx.lineWidth = 1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(pad.left, y0); ctx.lineTo(pad.left + cw, y0); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Fill area (simple)
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(dataSimple[0]));
+  dataSimple.forEach((v, i) => ctx.lineTo(xOf(i), yOf(v)));
+  ctx.lineTo(xOf(24), yOf(0));
+  ctx.lineTo(xOf(0), yOf(0));
+  ctx.closePath();
+  const fillColor = dataSimple[dataSimple.length-1] >= 0 ? 'rgba(10,9,8,0.05)' : 'rgba(165,22,22,0.05)';
+  ctx.fillStyle = fillColor; ctx.fill();
+
+  // Line simple
+  ctx.strokeStyle = '#0a0908'; ctx.lineWidth = 2; ctx.setLineDash([]);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath();
+  dataSimple.forEach((v, i) => { if(i===0) ctx.moveTo(xOf(i),yOf(v)); else ctx.lineTo(xOf(i),yOf(v)); });
+  ctx.stroke();
+
+  // Line financed
+  ctx.strokeStyle = '#9a4a06'; ctx.lineWidth = 1.5; ctx.setLineDash([5,4]);
+  ctx.beginPath();
+  dataFin.forEach((v, i) => { if(i===0) ctx.moveTo(xOf(i),yOf(v)); else ctx.lineTo(xOf(i),yOf(v)); });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Dots on simple
+  dataSimple.forEach((v, i) => {
+    if(i % 4 === 0 || i === 24){
+      ctx.beginPath(); ctx.arc(xOf(i), yOf(v), 3, 0, Math.PI*2);
+      ctx.fillStyle = '#0a0908'; ctx.fill();
+      ctx.beginPath(); ctx.arc(xOf(i), yOf(v), 5, 0, Math.PI*2);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    }
+  });
+
+  // X axis labels
+  ctx.fillStyle = '#a39f97';
+  ctx.font = '10.5px Inter, Outfit, sans-serif';
+  ctx.textAlign = 'center';
+  for(let i = 0; i <= 24; i += 4){
+    ctx.fillText(i === 0 ? 'OGGI' : 'A' + i, xOf(i), h - 10);
+  }
+
+  // Y axis labels
+  ctx.textAlign = 'right';
+  ctx.font = '10px JetBrains Mono, IBM Plex Mono, monospace';
+  const steps = 5;
+  for(let i = 0; i <= steps; i++){
+    const v = minV - pad20 + ((range + 2*pad20) / steps) * i;
+    const y = pad.top + ch - (i / steps) * ch;
+    const k = Math.abs(v)/1000;
+    const label = (v >= 0 ? '+' : '−') + '€' + k.toFixed(0) + 'k';
+    ctx.fillStyle = '#6b6862';
+    ctx.fillText(label, pad.left - 8, y + 3.5);
+  }
+}
+
+// ─────────────────────────────────────────────
+// SAVE / LOAD (localStorage)
+// ─────────────────────────────────────────────
+const LS_KEY = 'pianoFV_simulations';
+
+function getAll(){
+  try{ return JSON.parse(localStorage.getItem(LS_KEY)) || {}; }
+  catch(e){ return {}; }
+}
+function saveAll(sims){ localStorage.setItem(LS_KEY, JSON.stringify(sims)); }
+
+function getSimName(){
+  const a = document.getElementById('simName').value.trim();
+  const b = document.getElementById('simNameSheet')?.value.trim() || '';
+  return a || b;
+}
+function setSimName(name){
+  document.getElementById('simName').value = name;
+  const sheet = document.getElementById('simNameSheet');
+  if(sheet) sheet.value = name;
+}
+function syncSimName(src){
+  const v = src.value;
+  if(src.id === 'simName'){
+    const sheet = document.getElementById('simNameSheet');
+    if(sheet) sheet.value = v;
+  } else {
+    document.getElementById('simName').value = v;
+  }
+}
+
+function saveSimulation(){
+  const name = getSimName();
+  if(!name){ showToast('Serve un nome per salvare la simulazione'); return; }
+  const sims = getAll();
+  const inputs = {};
+  ['costFV','costBat','costHP','costElec','prodFV','degradFV','batCap',
+   'rngInstant','rngBat','rngRID',
+   'batCap10','batCap20','batCap25','prezzoEE','prezzoRID','inflEE','inflRID','fabbEE','rispGPL',
+   'totDetr','durDetr','contoTermico','kwhRev','tarRev','anniRev',
+   'capFin','durFin','tassoFin','rataFin','annoMaint','costoMaint'
+  ].forEach(id => { const el = document.getElementById(id); if(el) inputs[id] = el.value; });
+  inputs._state = {...state};
+  sims[name] = inputs;
+  saveAll(sims);
+  renderChips();
+  showToast(`Simulazione "${name}" salvata`);
+}
+
+function loadSimulation(){
+  const name = getSimName();
+  if(!name){ showToast('Scrivi il nome o seleziona una simulazione'); return; }
+  const sims = getAll();
+  if(!sims[name]){ showToast(`Simulazione "${name}" non trovata`); return; }
+  applySimulation(sims[name]);
+  showToast(`"${name}" caricata`);
+}
+
+function applySimulation(data){
+  Object.entries(data).forEach(([k, v]) => {
+    if(k === '_state') return;
+    const el = document.getElementById(k);
+    if(el) el.value = v;
+  });
+  if(data._state){
+    Object.assign(state, data._state);
+    const swMap = {'sw-rev':'inclRev','sw-fin':'useFin','sw-man':'useMaint','sw-auto':'autoDist'};
+    Object.entries(swMap).forEach(([id, key]) => {
+      const sw = document.getElementById(id);
+      if(sw) sw.classList.toggle('on', state[key]);
+    });
+  }
+  // Sync hidden number inputs con gli slider e lastPct
+  ['Instant','Bat','RID'].forEach(k => {
+    const rng = document.getElementById('rng'+k);
+    if(rng){
+      lastPct[k] = +rng.value;
+      const hid = document.getElementById('pct'+k);
+      if(hid) hid.value = rng.value;
+    }
+  });
+  refreshSlidersUI();
+  calc();
+}
+
+function deleteSimulation(name, e){
+  e.stopPropagation();
+  if(!confirm(`Eliminare la simulazione "${name}"?`)) return;
+  const sims = getAll();
+  delete sims[name];
+  saveAll(sims);
+  renderChips();
+  showToast(`"${name}" eliminata`);
+}
+
+function renderChips(){
+  const sims = getAll();
+  const names = Object.keys(sims);
+  const html = names.length
+    ? names.map(n =>
+        `<div class="chip" onclick="loadChip('${n.replace(/'/g,"\\'")}')">
+          <span class="chip-name">${n}</span>
+          <span class="chip-del" onclick="deleteSimulation('${n.replace(/'/g,"\\'")}',event)" title="Elimina">×</span>
+        </div>`
+      ).join('')
+    : '<span class="chips-empty">Nessuna simulazione salvata</span>';
+  ['chips','chipsSheet'].forEach(id => {
+    const c = document.getElementById(id);
+    if(c) c.innerHTML = html;
+  });
+}
+
+function loadChip(name){
+  setSimName(name);
+  const sims = getAll();
+  applySimulation(sims[name]);
+  showToast(`"${name}" caricata`);
+  closeSheet();
+}
+
+// ─────────────────────────────────────────────
+// EXPORT / IMPORT PRESETS
+// ─────────────────────────────────────────────
+const PRESET_FORMAT = 'pianoFV-presets/v1';
+
+function exportPresets(){
+  const sims = getAll();
+  const names = Object.keys(sims);
+  if(!names.length){ showToast('Nessuna simulazione da esportare'); return; }
+  const payload = {
+    format: PRESET_FORMAT,
+    exportedAt: new Date().toISOString(),
+    count: names.length,
+    presets: sims
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  a.href = url;
+  a.download = `pianoFV-presets-${ts}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`Esportate ${names.length} simulazion${names.length===1?'e':'i'}`);
+}
+
+function importPresets(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = JSON.parse(e.target.result);
+      // Accetta sia formato wrapped {format, presets} sia oggetto piatto {nome: {...}}
+      let incoming;
+      if(data && typeof data === 'object' && data.presets && typeof data.presets === 'object'){
+        incoming = data.presets;
+      } else if(data && typeof data === 'object'){
+        incoming = data;
+      } else {
+        throw new Error('formato non valido');
+      }
+      const incomingNames = Object.keys(incoming);
+      if(!incomingNames.length) throw new Error('nessuna simulazione nel file');
+
+      const existing = getAll();
+      const conflicts = incomingNames.filter(n => n in existing);
+      let mode = 'merge';
+      if(conflicts.length){
+        const ok = confirm(
+          `${conflicts.length} simulazion${conflicts.length===1?'e esiste':'i esistono'} già con lo stesso nome:\n` +
+          conflicts.slice(0,8).map(n => '• ' + n).join('\n') +
+          (conflicts.length>8 ? `\n…e altre ${conflicts.length-8}` : '') +
+          `\n\nOK = sovrascrivi  •  Annulla = importa con suffisso "(import)"`
+        );
+        mode = ok ? 'overwrite' : 'rename';
+      }
+      let added = 0;
+      for(const name of incomingNames){
+        const value = incoming[name];
+        if(!value || typeof value !== 'object') continue;
+        let target = name;
+        if(mode === 'rename' && (target in existing)){
+          let i = 1;
+          while(`${name} (import${i>1?' '+i:''})` in existing) i++;
+          target = `${name} (import${i>1?' '+i:''})`;
+        }
+        existing[target] = value;
+        added++;
+      }
+      saveAll(existing);
+      renderChips();
+      showToast(`Importate ${added} simulazion${added===1?'e':'i'}`);
+    } catch(err){
+      showToast('Errore import: ' + err.message);
+    } finally {
+      ev.target.value = ''; // permette re-import dello stesso file
+    }
+  };
+  reader.onerror = () => { showToast('Lettura file fallita'); ev.target.value = ''; };
+  reader.readAsText(file);
+}
+
+// ─────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─────────────────────────────────────────────
+// MOBILE: TABS + SHEET + SWIPE
+// ─────────────────────────────────────────────
+const TAB_ORDER = ['results','params','table'];
+
+function setMobileTab(tab, ev){
+  const target = TAB_ORDER.includes(tab) ? tab : 'results';
+  document.querySelectorAll('.tab-pane').forEach(p => {
+    p.classList.toggle('is-active', p.dataset.tab === target);
+  });
+  document.querySelectorAll('.mtab').forEach(b => {
+    const isActive = b.dataset.target === target;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  // Il chart va ridisegnato perché il canvas era nascosto (width=0)
+  if(target === 'results') requestAnimationFrame(drawChart);
+  // Riporta in cima lo scroll quando si cambia sezione
+  window.scrollTo({top:0, behavior:'instant' in window ? 'instant' : 'auto'});
+}
+
+function openSheet(){
+  document.getElementById('sheet').classList.add('show');
+  document.getElementById('sheetBackdrop').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  // Sincronizza il valore corrente del nome
+  const v = document.getElementById('simName').value;
+  document.getElementById('simNameSheet').value = v;
+}
+function closeSheet(){
+  document.getElementById('sheet').classList.remove('show');
+  document.getElementById('sheetBackdrop').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// Swipe orizzontale tra le tab (solo mobile)
+(function setupTabSwipe(){
+  const wrap = document.querySelector('.wrap');
+  if(!wrap) return;
+  let sx = 0, sy = 0, tracking = false;
+  wrap.addEventListener('touchstart', e => {
+    if(window.innerWidth > 768 || e.touches.length !== 1) return;
+    // Ignora swipe iniziati su input, slider, canvas o tabella scrollabile
+    let el = e.target;
+    while(el && el !== wrap){
+      const tag = el.tagName;
+      if(tag === 'INPUT' || tag === 'SELECT' || tag === 'CANVAS' ||
+         (el.classList && el.classList.contains('tscroll'))){
+        tracking = false; return;
+      }
+      el = el.parentElement;
+    }
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    tracking = true;
+  }, {passive:true});
+  wrap.addEventListener('touchend', e => {
+    if(!tracking) return;
+    tracking = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx;
+    const dy = t.clientY - sy;
+    if(Math.abs(dx) < 60 || Math.abs(dy) > 70) return;
+    const cur = TAB_ORDER.findIndex(name =>
+      document.querySelector(`.tab-pane[data-tab="${name}"]`)?.classList.contains('is-active')
+    );
+    if(cur < 0) return;
+    if(dx < 0 && cur < TAB_ORDER.length - 1) setMobileTab(TAB_ORDER[cur + 1]);
+    else if(dx > 0 && cur > 0) setMobileTab(TAB_ORDER[cur - 1]);
+  }, {passive:true});
+})();
+
+// Swipe-to-dismiss sulla bottom sheet
+(function setupSheetSwipe(){
+  const sheet = document.getElementById('sheet');
+  const handle = document.getElementById('sheetHandle');
+  if(!sheet || !handle) return;
+  let sy = 0, dragging = false;
+  handle.addEventListener('touchstart', e => {
+    sy = e.touches[0].clientY; dragging = true;
+  }, {passive:true});
+  handle.addEventListener('touchmove', e => {
+    if(!dragging) return;
+    const dy = e.touches[0].clientY - sy;
+    if(dy > 0){ sheet.style.transform = `translateY(${dy}px)`; }
+  }, {passive:true});
+  handle.addEventListener('touchend', e => {
+    if(!dragging) return;
+    dragging = false;
+    const dy = e.changedTouches[0].clientY - sy;
+    sheet.style.transform = '';
+    if(dy > 80) closeSheet();
+  }, {passive:true});
+})();
+
+// ESC per chiudere la sheet
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeSheet();
+});
+
+// ─────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────
+window.addEventListener('resize', drawChart);
+renderChips();
+refreshSlidersUI();
+calc();
+</script>
+</body>
+</html>

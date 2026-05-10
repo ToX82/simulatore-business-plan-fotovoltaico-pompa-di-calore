@@ -894,16 +894,16 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
       </div>
     </div>
 
-    <!-- CONSUMI & GPL -->
+    <!-- CONSUMI & COMBUSTIBILE -->
     <div class="panel" id="p-cons">
       <div class="ph" onclick="togglePanel('p-cons')">
         <span class="ph-num">05</span>
-        <h2>Consumi & risparmio GPL</h2>
+        <h2>Consumi & risparmio combustibile</h2>
         <span class="ph-arr">▾</span>
       </div>
       <div class="pb">
         <div class="ibox ibox-blue">
-          La pompa di calore sostituisce il riscaldamento a GPL/gasolio: il <strong>fabbisogno elettrico</strong> aumenta (riscaldamento + ACS), mentre il <strong>costo del combustibile fossile</strong> si azzera. Calcola entrambi i valori in regime annuale a regime.
+          La pompa di calore sostituisce il vecchio impianto di riscaldamento: il <strong>fabbisogno elettrico</strong> aumenta (riscaldamento + ACS), mentre la <strong>spesa per il combustibile</strong> si azzera. Calcola entrambi i valori a regime.
         </div>
         <div class="f">
           <div class="fl"><label>Fabbisogno EE post-pompa</label></div>
@@ -911,9 +911,9 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
           <div class="fhint">Consumo elettrico totale annuo: usi base (illuminazione, elettrodomestici) + pompa di calore. Tipicamente 8.000–15.000 kWh/a per una villa unifamiliare.</div>
         </div>
         <div class="f">
-          <div class="fl"><label>Risparmio GPL anno 1</label></div>
+          <div class="fl"><label>Risparmio combustibile anno 1</label></div>
           <div class="iu"><input type="number" id="rispGPL" value="2260" oninput="calc()"><span class="unit">€/anno</span></div>
-          <div class="fhint">Spesa annua per GPL/gasolio che viene eliminata grazie alla pompa. Il valore cresce ogni anno con l'inflazione energetica.</div>
+          <div class="fhint">Spesa annua per il combustibile (gas, GPL, gasolio, pellet, legna…) eliminata grazie alla pompa. Cresce ogni anno con l'inflazione energetica.</div>
         </div>
       </div>
     </div>
@@ -1110,7 +1110,7 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
               <th>Autocons.<br>istantaneo</th>
               <th>Autocons.<br>batteria</th>
               <th>Ritiro<br>Dedicato</th>
-              <th>Risp.<br>GPL</th>
+              <th>Risp.<br>combust.</th>
               <th>Detr.<br>fiscale</th>
               <th>C.Termico</th>
               <th>Incentivo<br>Revamping</th>
@@ -1387,7 +1387,7 @@ function calcPlan(p){
     const kwh_rid = fvProd * p.pctRID;
     const val_rid = kwh_rid * p.prezzoRID * inflRid;
 
-    // Risparmio GPL
+    // Risparmio combustibile
     const val_gpl = p.rispGPL * infl;
 
     // Costo EE residuo (NEGATIVO)

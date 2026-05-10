@@ -111,6 +111,28 @@ button,input{font-family:inherit;color:inherit}
 .btn:hover{background:var(--surface-alt);border-color:var(--line-strong)}
 .btn-primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .btn-primary:hover{background:#27272a;border-color:#27272a}
+.btn-icon{padding:0;width:34px;justify-content:center;color:var(--ink-3);border-color:transparent;background:transparent}
+.btn-icon:hover{color:var(--ink);background:var(--surface-alt);border-color:var(--line)}
+.btn-icon svg{width:16px;height:16px;display:block}
+
+.menu-wrap{position:relative;display:inline-flex}
+.menu-pop{
+  position:absolute;top:calc(100% + 6px);right:0;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:10px;
+  box-shadow:var(--sh-3);
+  padding:4px;min-width:170px;z-index:50;
+  display:none;
+}
+.menu-pop.open{display:block}
+.menu-pop-item{
+  display:block;width:100%;text-align:left;
+  padding:8px 12px;font-size:13px;color:var(--ink);
+  background:none;border:0;border-radius:6px;cursor:pointer;
+  white-space:nowrap;
+}
+.menu-pop-item:hover{background:var(--surface-alt)}
 
 /* ─── Chips ───────────────────────────────────────────────── */
 .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1;min-width:0}
@@ -709,8 +731,16 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
   <input type="text" class="si si-name" id="simName" placeholder="Nome simulazione…" oninput="syncSimName(this)">
   <button class="btn btn-primary" onclick="saveSimulation()">Salva</button>
   <button class="btn" onclick="loadSimulation()">Carica</button>
-  <button class="btn" onclick="exportPresets()" title="Scarica tutte le simulazioni salvate in un file JSON">Esporta</button>
-  <button class="btn" onclick="document.getElementById('importFile').click()" title="Carica simulazioni da un file JSON">Importa</button>
+  <button class="btn" onclick="shareSimulation()" title="Genera un link con i parametri correnti da condividere">Condividi</button>
+  <div class="menu-wrap">
+    <button class="btn btn-icon" onclick="toggleMoreMenu(event)" aria-label="Altre opzioni" aria-haspopup="menu" title="Altre azioni">
+      <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+    </button>
+    <div class="menu-pop" id="moreMenu" role="menu">
+      <button class="menu-pop-item" role="menuitem" onclick="closeMoreMenu(); exportPresets()">Salva su file…</button>
+      <button class="menu-pop-item" role="menuitem" onclick="closeMoreMenu(); document.getElementById('importFile').click()">Apri da file…</button>
+    </div>
+  </div>
   <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importPresets(event)">
   <div class="chips" id="chips"></div>
 </div>
@@ -1166,8 +1196,11 @@ tfoot td{font-weight:600;background:var(--surface-alt);border-top:1px solid var(
       <button class="btn" onclick="loadSimulation()">Carica</button>
     </div>
     <div class="sheet-actions">
-      <button class="btn" onclick="exportPresets()">Esporta JSON</button>
-      <button class="btn" onclick="document.getElementById('importFile').click()">Importa JSON</button>
+      <button class="btn" onclick="shareSimulation()">Condividi link</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" onclick="exportPresets()">Salva su file</button>
+      <button class="btn" onclick="document.getElementById('importFile').click()">Apri da file</button>
     </div>
     <div class="sheet-section-title">Salvate</div>
     <div class="chips" id="chipsSheet"></div>
@@ -1807,6 +1840,67 @@ function loadChip(name){
 }
 
 // ─────────────────────────────────────────────
+// SHARE VIA URL (parametri in chiaro)
+// ─────────────────────────────────────────────
+const SIM_INPUT_IDS = ['costFV','costBat','costHP','costElec','prodFV','degradFV','batCap','batRT',
+  'rngInstant','rngBat','rngRID',
+  'batCap10','batCap20','batCap25','prezzoEE','prezzoRID','inflEE','inflRID','discRate','fabbEE','rispGPL',
+  'totDetr','durDetr','contoTermico','kwhRev','tarRev','anniRev',
+  'capFin','durFin','tassoFin','annoMaint','costoMaint','maintYearly'];
+const SIM_STATE_KEYS = ['inclRev','useMaint','autoDist','capAuto'];
+
+function buildShareUrl(){
+  const params = new URLSearchParams();
+  const name = getSimName();
+  if(name) params.set('n', name);
+  SIM_INPUT_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if(el && el.value !== '' && el.value != null) params.set(id, el.value);
+  });
+  SIM_STATE_KEYS.forEach(k => {
+    if(k in state) params.set('s.'+k, state[k] ? '1' : '0');
+  });
+  return `${location.origin}${location.pathname}?${params.toString()}`;
+}
+
+function shareSimulation(){
+  const url = buildShareUrl();
+  const fallback = () => { window.prompt('Copia il link da condividere:', url); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(
+      () => showToast('Link copiato negli appunti'),
+      fallback
+    );
+  } else {
+    fallback();
+  }
+}
+
+function loadFromQuery(){
+  const params = new URLSearchParams(location.search);
+  const data = {};
+  const _state = {};
+  let nm = '';
+  let hasAny = false;
+  for(const [k, v] of params){
+    if(k === 'n'){ nm = v; hasAny = true; continue; }
+    if(k.startsWith('s.')){
+      const sk = k.slice(2);
+      if(SIM_STATE_KEYS.includes(sk)){ _state[sk] = (v === '1' || v === 'true'); hasAny = true; }
+      continue;
+    }
+    if(SIM_INPUT_IDS.includes(k)){ data[k] = v; hasAny = true; }
+  }
+  if(!hasAny) return false;
+  if(Object.keys(_state).length) data._state = _state;
+  applySimulation(data);
+  if(nm) setSimName(nm);
+  showToast(nm ? `"${nm}" caricata dal link` : 'Simulazione caricata dal link');
+  history.replaceState(null, '', location.pathname);
+  return true;
+}
+
+// ─────────────────────────────────────────────
 // EXPORT / IMPORT PRESETS
 // ─────────────────────────────────────────────
 const PRESET_FORMAT = 'pianoFV-presets/v1';
@@ -1814,7 +1908,7 @@ const PRESET_FORMAT = 'pianoFV-presets/v1';
 function exportPresets(){
   const sims = getAll();
   const names = Object.keys(sims);
-  if(!names.length){ showToast('Nessuna simulazione da esportare'); return; }
+  if(!names.length){ showToast('Nessuna simulazione da salvare'); return; }
   const payload = {
     format: PRESET_FORMAT,
     exportedAt: new Date().toISOString(),
@@ -1831,7 +1925,7 @@ function exportPresets(){
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast(`Esportate ${names.length} simulazion${names.length===1?'e':'i'}`);
+  showToast(`Salvate ${names.length} simulazion${names.length===1?'e':'i'} su file`);
 }
 
 function importPresets(ev){
@@ -1861,7 +1955,7 @@ function importPresets(ev){
           `${conflicts.length} simulazion${conflicts.length===1?'e esiste':'i esistono'} già con lo stesso nome:\n` +
           conflicts.slice(0,8).map(n => '• ' + n).join('\n') +
           (conflicts.length>8 ? `\n…e altre ${conflicts.length-8}` : '') +
-          `\n\nOK = sovrascrivi  •  Annulla = importa con suffisso "(import)"`
+          `\n\nOK = sovrascrivi  •  Annulla = aggiungi con suffisso "(copia)"`
         );
         mode = ok ? 'overwrite' : 'rename';
       }
@@ -1872,17 +1966,17 @@ function importPresets(ev){
         let target = name;
         if(mode === 'rename' && (target in existing)){
           let i = 1;
-          while(`${name} (import${i>1?' '+i:''})` in existing) i++;
-          target = `${name} (import${i>1?' '+i:''})`;
+          while(`${name} (copia${i>1?' '+i:''})` in existing) i++;
+          target = `${name} (copia${i>1?' '+i:''})`;
         }
         existing[target] = value;
         added++;
       }
       saveAll(existing);
       renderChips();
-      showToast(`Importate ${added} simulazion${added===1?'e':'i'}`);
+      showToast(`Caricat${added===1?'a':'e'} ${added} simulazion${added===1?'e':'i'} dal file`);
     } catch(err){
-      showToast('Errore import: ' + err.message);
+      showToast('File non valido: ' + err.message);
     } finally {
       ev.target.value = ''; // permette re-import dello stesso file
     }
@@ -1998,9 +2092,24 @@ function closeSheet(){
   }, {passive:true});
 })();
 
-// ESC per chiudere la sheet
+// ESC per chiudere sheet o popover
 document.addEventListener('keydown', e => {
-  if(e.key === 'Escape') closeSheet();
+  if(e.key === 'Escape'){ closeSheet(); closeMoreMenu(); }
+});
+
+// Popover "Altre azioni" nella savebar
+function toggleMoreMenu(ev){
+  ev.stopPropagation();
+  document.getElementById('moreMenu').classList.toggle('open');
+}
+function closeMoreMenu(){
+  const m = document.getElementById('moreMenu');
+  if(m) m.classList.remove('open');
+}
+document.addEventListener('click', e => {
+  const m = document.getElementById('moreMenu');
+  if(!m || !m.classList.contains('open')) return;
+  if(!e.target.closest('.menu-wrap')) closeMoreMenu();
 });
 
 // ─────────────────────────────────────────────
@@ -2009,7 +2118,7 @@ document.addEventListener('keydown', e => {
 window.addEventListener('resize', drawChart);
 renderChips();
 refreshSlidersUI();
-calc();
+if(!loadFromQuery()) calc();
 </script>
 </body>
 </html>

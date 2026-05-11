@@ -1341,22 +1341,40 @@ function refreshSlidersUI(){
 function num(id){ return parseFloat(document.getElementById(id).value) || 0; }
 
 function readParams(){
+  const prodFV = num('prodFV');
+  const fabbEE = num('fabbEE');
+  const batCap = num('batCap');
+
+  // Cap fisico sui flussi: simulateDistribution restituisce i massimi
+  // realizzabili dall'overlap diurno produzione/consumo (auto) e dalla carica
+  // giornaliera in batteria (bat). Slider manuali oltre questi limiti vengono
+  // cappati e l'eccedenza è riassegnata a RID. Garantisce che con batCap = 0
+  // l'autoconsumo da batteria sia 0 anche se lo slider non è stato aggiornato.
+  const physMax = simulateDistribution(prodFV, fabbEE, batCap);
+  const pctInstMax = prodFV > 0 ? physMax.auto / prodFV : 0;
+  const pctBatMax  = prodFV > 0 ? physMax.bat  / prodFV : 0;
+  const rngInst = (+document.getElementById('rngInstant').value) / 100;
+  const rngBat  = (+document.getElementById('rngBat').value) / 100;
+  const pctInstant = Math.min(rngInst, pctInstMax);
+  const pctBat     = Math.min(rngBat,  pctBatMax);
+  const pctRID     = Math.max(0, 1 - pctInstant - pctBat);
+
   return {
     costFV: num('costFV'), costBat: num('costBat'), costHP: num('costHP'), costElec: num('costElec'),
-    prodFV: num('prodFV'),
+    prodFV,
     degradFV: num('degradFV') / 100,
-    batCap: num('batCap'),
+    batCap,
     batRT: num('batRT') / 100,
-    pctInstant: (+document.getElementById('rngInstant').value) / 100,
-    pctBat: (+document.getElementById('rngBat').value) / 100,
-    pctRID: (+document.getElementById('rngRID').value) / 100,
+    pctInstant, pctBat, pctRID,
+    pctInstMax, pctBatMax,
+    rngInstRaw: rngInst, rngBatRaw: rngBat,
     batCap10: num('batCap10') / 100,
     batCap20: num('batCap20') / 100,
     batCap25: num('batCap25') / 100,
     prezzoEE: num('prezzoEE'), prezzoRID: num('prezzoRID'),
     inflEE: num('inflEE') / 100, inflRID: num('inflRID') / 100,
     discRate: num('discRate') / 100,
-    fabbEE: num('fabbEE'),
+    fabbEE,
     rispGPL: num('rispGPL'),
     totDetr: num('totDetr'), durDetr: num('durDetr'),
     contoTermico: num('contoTermico'),
@@ -1511,19 +1529,26 @@ function calc(){
   // Aggiorna rata finanziamento calcolata (PMT)
   document.getElementById('rataFin').value = Math.round(p.rataFin);
 
-  // Aggiorna display % e kWh per gli slider
-  const pInst = +document.getElementById('rngInstant').value;
-  const pBat  = +document.getElementById('rngBat').value;
-  const pRID  = +document.getElementById('rngRID').value;
+  // Aggiorna display % e kWh per gli slider, usando i valori effettivi
+  // (post-cap fisico). Se lo slider eccede il limite fisico, segnalo "cap".
+  const pInst = p.pctInstant * 100;
+  const pBat  = p.pctBat * 100;
+  const pRID  = p.pctRID * 100;
   document.getElementById('dispInstant').textContent = fmtPct(pInst);
   document.getElementById('dispBat').textContent     = fmtPct(pBat);
   document.getElementById('dispRID').textContent     = fmtPct(pRID);
-  const kInst = Math.round(p.prodFV * pInst/100);
-  const kBat  = Math.round(p.prodFV * pBat/100);
-  const kRID  = Math.round(p.prodFV * pRID/100);
-  document.getElementById('kwhInstant').textContent = kInst.toLocaleString('it-IT') + ' kWh';
-  document.getElementById('kwhBat').textContent     = kBat.toLocaleString('it-IT') + ' kWh';
-  document.getElementById('kwhRID').textContent     = kRID.toLocaleString('it-IT') + ' kWh';
+  const kInst = Math.round(p.prodFV * p.pctInstant);
+  const kBat  = Math.round(p.prodFV * p.pctBat);
+  const kRID  = Math.round(p.prodFV * p.pctRID);
+  // Soglia 0,1 punti percentuali (= passo slider) per non segnalare cap
+  // dovuti al solo arrotondamento dello slider.
+  const capInst = p.rngInstRaw - p.pctInstant > 1e-3;
+  const capBat  = p.rngBatRaw  - p.pctBat     > 1e-3;
+  const tag = (capped, maxPct) =>
+    capped ? ` · <span style="color:#9a4a06">cap fisico ${fmtPct(maxPct*100)}</span>` : '';
+  document.getElementById('kwhInstant').innerHTML = kInst.toLocaleString('it-IT') + ' kWh' + tag(capInst, p.pctInstMax);
+  document.getElementById('kwhBat').innerHTML     = kBat.toLocaleString('it-IT')  + ' kWh' + tag(capBat,  p.pctBatMax);
+  document.getElementById('kwhRID').innerHTML     = kRID.toLocaleString('it-IT')  + ' kWh';
 
   const { rows, cumSimple, cumFin, cumNPV, paybackSimple, paybackFin } = calcPlan(p);
   chartData = rows;
